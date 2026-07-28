@@ -80,6 +80,7 @@ body {
   transition: border-color 0.2s;
 }
 .input-field:focus { border-color:var(--accent); }
+input[type="date"].input-field { height:44px; font-size:15px; -webkit-appearance:none; appearance:none; line-height:44px; }
 select.input-field { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 16px center; }
 
 /* ── Pills ── */
@@ -393,7 +394,7 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   <div style="display:flex;gap:12px;margin-bottom:16px">
     <div class="input-group" style="flex:1">
       <label>Date</label>
-      <input id="exp-date" type="date" class="input-field">
+      <input id="exp-date" type="date" class="input-field" style="height:44px;font-size:15px;-webkit-appearance:none;appearance:none">
     </div>
   </div>
   <div class="input-group" style="margin-bottom:16px">

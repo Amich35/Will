@@ -187,6 +187,20 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 
 /* ── Scrollable content ── */
 .scroll-content { padding:24px 16px calc(100px + var(--safe-bottom)); display:flex; flex-direction:column; gap:12px; flex:1; overflow-y:auto; }
+
+/* ── Swipe row ── */
+.swipe-row { position:relative; overflow:hidden; }
+.swipe-row-inner { display:flex; align-items:center; justify-content:space-between; padding:14px 4px; border-top:1px solid var(--sep); background:var(--card,#fff); transition:transform 0.25s ease; will-change:transform; }
+.swipe-actions { position:absolute; right:0; top:0; bottom:0; display:flex; align-items:stretch; }
+.swipe-btn { display:flex; align-items:center; justify-content:center; width:70px; border:none; cursor:pointer; font-size:12px; font-weight:600; color:#fff; flex-direction:column; gap:4px; }
+.swipe-btn-edit { background:#636366; }
+.swipe-btn-delete { background:var(--red); border-radius:0 0 0 0; }
+.swipe-btn.confirm { background:#FF6B00; }
+
+/* ── Period pill button ── */
+.period-btn { display:flex; align-items:center; gap:6px; padding:8px 14px; border-radius:10px; border:1.5px solid var(--sep); background:var(--card); font-size:13px; font-weight:600; color:var(--text2); cursor:pointer; }
+.period-option { display:flex; align-items:center; justify-content:space-between; padding:16px 4px; border-top:1px solid var(--sep); font-size:16px; color:var(--text); cursor:pointer; }
+.period-option.active { color:var(--accent); font-weight:600; }
 </style>
 </head>
 <body>
@@ -339,7 +353,13 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   <div style="padding:24px 24px 0">
     <h1 style="font-size:28px;font-weight:700;letter-spacing:-0.5px">Dépenses</h1>
     <div id="expense-pills" style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap"></div>
-    <div id="expense-filters" style="display:flex;gap:8px;margin-top:12px;overflow-x:auto;padding-bottom:4px"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px">
+      <div id="expense-filters" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;flex:1"></div>
+      <button class="period-btn" id="period-trigger" onclick="openPeriodSheet()" style="flex-shrink:0;margin-left:8px">
+        <span id="period-label">12 mois</span>
+        <i data-lucide="chevron-down" style="width:14px;height:14px"></i>
+      </button>
+    </div>
   </div>
   <div id="expenses-list" class="scroll-content" style="padding-top:12px"></div>
 </div>
@@ -380,11 +400,19 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   </div>
 </div>
 
-<!-- Overlay + Bottom Sheet — Ajout dépense -->
+<!-- Overlay période -->
+<div class="overlay" id="period-overlay" onclick="closePeriodSheet()"></div>
+<div class="bottom-sheet" id="period-sheet">
+  <div class="sheet-handle"></div>
+  <h3 style="font-size:18px;font-weight:700;margin-bottom:20px;text-align:center">Période</h3>
+  <div id="period-options"></div>
+</div>
+
+<!-- Overlay + Bottom Sheet — Ajout/Modif dépense -->
 <div class="overlay" id="expense-overlay" onclick="closeExpenseSheet()"></div>
 <div class="bottom-sheet" id="expense-sheet">
   <div class="sheet-handle"></div>
-  <h3 style="font-size:18px;font-weight:700;margin-bottom:20px;text-align:center">Ajouter une dépense</h3>
+  <h3 id="exp-sheet-title" style="font-size:18px;font-weight:700;margin-bottom:20px;text-align:center">Ajouter une dépense</h3>
   <div style="text-align:center;margin-bottom:20px">
     <input id="exp-amount" type="number" inputmode="decimal" placeholder="0,00"
       style="font-size:36px;font-weight:800;text-align:center;border:none;outline:none;width:100%;color:var(--text);background:transparent;letter-spacing:-1px">
@@ -405,7 +433,7 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
     <label>Note (optionnelle)</label>
     <input id="exp-note" class="input-field" placeholder="ex. Vidange + filtres">
   </div>
-  <button class="btn btn-primary" onclick="saveExpense()">Ajouter</button>
+  <button id="exp-save-btn" class="btn btn-primary" onclick="saveExpense()">Ajouter</button>
 </div>
 
 <script>
@@ -424,6 +452,17 @@ let vehicles = [];
 let expenses = [];
 let selectedVehicleId = null;
 let selectedExpenseCat = 'all';
+let selectedPeriod = '12m';
+let editingExpenseId = null;
+
+const PERIODS = [
+  { key: 'today', label: "Aujourd'hui" },
+  { key: '30d',   label: '30 jours' },
+  { key: '3m',    label: '3 mois' },
+  { key: '6m',    label: '6 mois' },
+  { key: '12m',   label: '12 mois' },
+  { key: 'all',   label: 'Tout' }
+];
 
 const CAT_ICONS = {
   carburant: 'fuel', entretien: 'wrench', assurance: 'shield',
@@ -865,12 +904,31 @@ function renderGarage() {
 // ══════════════════════════════════════
 // RENDER — DÉPENSES
 // ══════════════════════════════════════
+function filterByPeriod(list) {
+  const now = new Date();
+  if (selectedPeriod === 'all') return list;
+  return list.filter(e => {
+    const d = new Date(e.date);
+    if (selectedPeriod === 'today') {
+      return d.toDateString() === now.toDateString();
+    }
+    const days = selectedPeriod === '30d' ? 30 : selectedPeriod === '3m' ? 90 : selectedPeriod === '6m' ? 180 : 365;
+    const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - days);
+    return d >= cutoff;
+  });
+}
+
 function renderExpenses() {
   // Pills
   const pillsEl = document.getElementById('expense-pills');
   pillsEl.innerHTML = vehicles.map(v =>
     `<button class="pill ${v.id === selectedVehicleId ? 'active' : 'inactive'}" onclick="selectVehicle('${v.id}');renderExpenses()">${v.brand} ${v.model}</button>`
   ).join('');
+
+  // Period label
+  const periodObj = PERIODS.find(p => p.key === selectedPeriod);
+  const periodLabelEl = document.getElementById('period-label');
+  if (periodLabelEl) periodLabelEl.textContent = periodObj ? periodObj.label : '12 mois';
 
   // Filters
   const filtersEl = document.getElementById('expense-filters');
@@ -882,8 +940,9 @@ function renderExpenses() {
     return `<button class="chip ${active}" onclick="selectedExpenseCat='${c}';renderExpenses()">${dot}${label}</button>`;
   }).join('');
 
-  // List
+  // Filter list
   let filtered = expenses.filter(e => e.vehicle_id === selectedVehicleId);
+  filtered = filterByPeriod(filtered);
   if (selectedExpenseCat !== 'all') filtered = filtered.filter(e => e.category === selectedExpenseCat);
 
   const container = document.getElementById('expenses-list');
@@ -913,18 +972,26 @@ function renderExpenses() {
   Object.values(groups).forEach(g => {
     html += `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 4px;margin-top:8px">
       <span style="font-size:15px;font-weight:600;color:var(--text);text-transform:capitalize">${g.label}</span>
-      <span style="font-size:14px;font-weight:600;color:var(--text)">${Math.round(g.total)} €</span>
+      <span style="font-size:14px;color:var(--text2)">${g.expenses.length} dépense${g.expenses.length > 1 ? 's' : ''} · <strong style="color:var(--text)">${Math.round(g.total)} €</strong></span>
     </div>`;
     g.expenses.forEach(e => {
-      html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-top:1px solid var(--sep)">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div style="width:8px;height:8px;border-radius:4px;background:${CAT_COLORS[e.category]||'#ccc'};flex-shrink:0"></div>
-          <div>
-            <span style="font-size:14px;font-weight:500;color:var(--text)">${e.label || CAT_LABELS[e.category]}</span>
-            <p style="font-size:12px;color:var(--text2);margin-top:2px">${formatDate(e.date)}</p>
-          </div>
+      html += `<div class="swipe-row" data-id="${e.id}">
+        <div class="swipe-actions">
+          <button class="swipe-btn swipe-btn-edit" onclick="openEditExpense('${e.id}')">
+            <i data-lucide="pencil" style="width:16px;height:16px"></i>Modifier
+          </button>
+          <button class="swipe-btn swipe-btn-delete" id="del-${e.id}" onclick="confirmDeleteExpense('${e.id}',this)">
+            <i data-lucide="trash-2" style="width:16px;height:16px"></i>Supprimer
+          </button>
         </div>
-        <div style="text-align:right">
+        <div class="swipe-row-inner">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:8px;height:8px;border-radius:4px;background:${CAT_COLORS[e.category]||'#ccc'};flex-shrink:0"></div>
+            <div>
+              <span style="font-size:14px;font-weight:500;color:var(--text)">${e.label || CAT_LABELS[e.category]}</span>
+              <p style="font-size:12px;color:var(--text2);margin-top:2px">${formatDate(e.date)}</p>
+            </div>
+          </div>
           <span style="font-size:15px;font-weight:600;color:var(--text)">-${parseFloat(e.amount).toFixed(2).replace('.',',')} €</span>
         </div>
       </div>`;
@@ -933,6 +1000,7 @@ function renderExpenses() {
 
   container.innerHTML = html;
   lucide.createIcons();
+  initSwipeRows();
 }
 
 // ══════════════════════════════════════
@@ -1039,29 +1107,148 @@ function renderAccount() {
 }
 
 // ══════════════════════════════════════
-// EXPENSE SHEET
+// SWIPE ROWS
+// ══════════════════════════════════════
+function initSwipeRows() {
+  document.querySelectorAll('.swipe-row').forEach(row => {
+    const inner = row.querySelector('.swipe-row-inner');
+    const actionsWidth = 140;
+    let startX = 0, startY = 0, currentX = 0, isSwiping = false, isOpen = false, lockAxis = null;
+
+    inner.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      currentX = isOpen ? -actionsWidth : 0;
+      lockAxis = null;
+      inner.style.transition = 'none';
+    }, { passive: true });
+
+    inner.addEventListener('touchmove', e => {
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      if (!lockAxis) {
+        lockAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      }
+      if (lockAxis === 'y') return;
+      e.preventDefault();
+      const base = isOpen ? -actionsWidth : 0;
+      currentX = Math.max(-actionsWidth, Math.min(0, base + dx));
+      inner.style.transform = `translateX(${currentX}px)`;
+    }, { passive: false });
+
+    inner.addEventListener('touchend', () => {
+      inner.style.transition = 'transform 0.25s ease';
+      if (lockAxis === 'y') return;
+      if (currentX < -actionsWidth / 2) {
+        inner.style.transform = `translateX(-${actionsWidth}px)`;
+        isOpen = true;
+        // Close other open rows
+        document.querySelectorAll('.swipe-row-inner').forEach(other => {
+          if (other !== inner && other._isOpen) {
+            other.style.transform = 'translateX(0)';
+            other._isOpen = false;
+          }
+        });
+      } else {
+        inner.style.transform = 'translateX(0)';
+        isOpen = false;
+      }
+      inner._isOpen = isOpen;
+    }, { passive: true });
+  });
+
+  // Close all swipes on scroll
+  const list = document.getElementById('expenses-list');
+  if (list) {
+    list.addEventListener('scroll', () => {
+      document.querySelectorAll('.swipe-row-inner').forEach(inner => {
+        inner.style.transition = 'transform 0.25s ease';
+        inner.style.transform = 'translateX(0)';
+        inner._isOpen = false;
+      });
+    }, { passive: true });
+  }
+}
+
+// ══════════════════════════════════════
+// PERIOD SHEET
+// ══════════════════════════════════════
+function openPeriodSheet() {
+  const opts = PERIODS.map(p =>
+    `<div class="period-option ${p.key === selectedPeriod ? 'active' : ''}" onclick="setPeriod('${p.key}')">
+      <span>${p.label}</span>
+      ${p.key === selectedPeriod ? '<i data-lucide="check" style="width:18px;height:18px;color:var(--accent)"></i>' : ''}
+    </div>`
+  ).join('');
+  document.getElementById('period-options').innerHTML = opts;
+  document.getElementById('period-overlay').classList.add('show');
+  document.getElementById('period-sheet').classList.add('show');
+  lucide.createIcons();
+}
+
+function closePeriodSheet() {
+  document.getElementById('period-overlay').classList.remove('show');
+  document.getElementById('period-sheet').classList.remove('show');
+}
+
+function setPeriod(key) {
+  selectedPeriod = key;
+  closePeriodSheet();
+  renderExpenses();
+}
+
+// ══════════════════════════════════════
+// EXPENSE SHEET — AJOUT / MODIFICATION
 // ══════════════════════════════════════
 function openExpenseSheet() {
-  document.getElementById('expense-overlay').classList.add('show');
-  document.getElementById('expense-sheet').classList.add('show');
+  editingExpenseId = null;
+  document.getElementById('exp-sheet-title').textContent = 'Ajouter une dépense';
+  document.getElementById('exp-save-btn').textContent = 'Ajouter';
   document.getElementById('exp-amount').value = '';
   document.getElementById('exp-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('exp-label').value = '';
   document.getElementById('exp-note').value = '';
   selectedExpCat = 'carburant';
-
-  const catsEl = document.getElementById('exp-cats');
-  catsEl.innerHTML = Object.entries(CAT_LABELS).map(([k,v]) =>
-    `<button class="chip ${k === 'carburant' ? 'active' : ''}" onclick="selectExpCat('${k}',this)" data-cat="${k}">
-      <div class="dot" style="background:${CAT_COLORS[k]}"></div>${v}
-    </button>`
-  ).join('');
-
+  renderExpCats('carburant');
+  document.getElementById('expense-overlay').classList.add('show');
+  document.getElementById('expense-sheet').classList.add('show');
   setTimeout(() => document.getElementById('exp-amount').focus(), 300);
 }
 
+function openEditExpense(id) {
+  const exp = expenses.find(e => e.id === id);
+  if (!exp) return;
+  editingExpenseId = id;
+  document.getElementById('exp-sheet-title').textContent = 'Modifier la dépense';
+  document.getElementById('exp-save-btn').textContent = 'Enregistrer';
+  document.getElementById('exp-amount').value = exp.amount;
+  document.getElementById('exp-date').value = exp.date;
+  document.getElementById('exp-label').value = exp.label || '';
+  document.getElementById('exp-note').value = exp.note || '';
+  selectedExpCat = exp.category;
+  renderExpCats(exp.category);
+  document.getElementById('expense-overlay').classList.add('show');
+  document.getElementById('expense-sheet').classList.add('show');
+  // Close the swipe row
+  document.querySelectorAll('.swipe-row-inner').forEach(inner => {
+    inner.style.transition = 'transform 0.25s ease';
+    inner.style.transform = 'translateX(0)';
+    inner._isOpen = false;
+  });
+  setTimeout(() => document.getElementById('exp-amount').focus(), 300);
+}
+
+function renderExpCats(activeCat) {
+  const catsEl = document.getElementById('exp-cats');
+  catsEl.innerHTML = Object.entries(CAT_LABELS).map(([k,v]) =>
+    `<button class="chip ${k === activeCat ? 'active' : ''}" onclick="selectExpCat('${k}')" data-cat="${k}">
+      <div class="dot" style="background:${CAT_COLORS[k]}"></div>${v}
+    </button>`
+  ).join('');
+}
+
 let selectedExpCat = 'carburant';
-function selectExpCat(cat, el) {
+function selectExpCat(cat) {
   selectedExpCat = cat;
   document.querySelectorAll('#exp-cats .chip').forEach(c => c.classList.toggle('active', c.dataset.cat === cat));
 }
@@ -1069,6 +1256,7 @@ function selectExpCat(cat, el) {
 function closeExpenseSheet() {
   document.getElementById('expense-overlay').classList.remove('show');
   document.getElementById('expense-sheet').classList.remove('show');
+  editingExpenseId = null;
 }
 
 async function saveExpense() {
@@ -1078,20 +1266,47 @@ async function saveExpense() {
   const label = document.getElementById('exp-label').value.trim();
   const note = document.getElementById('exp-note').value.trim();
 
-  const { error } = await sb.from('expenses').insert({
-    vehicle_id: selectedVehicleId,
-    user_id: currentUser.id,
-    amount, category: selectedExpCat, date,
-    label: label || null, note: note || null
-  });
+  let error;
+  if (editingExpenseId) {
+    ({ error } = await sb.from('expenses').update({
+      amount, category: selectedExpCat, date,
+      label: label || null, note: note || null
+    }).eq('id', editingExpenseId));
+  } else {
+    ({ error } = await sb.from('expenses').insert({
+      vehicle_id: selectedVehicleId,
+      user_id: currentUser.id,
+      amount, category: selectedExpCat, date,
+      label: label || null, note: note || null
+    }));
+  }
 
   if (error) { alert('Erreur : ' + error.message); return; }
 
   closeExpenseSheet();
   await loadUserData();
-  // Refresh current view
   const activeTab = document.querySelector('.tab-item.active')?.dataset?.tab || 'today';
   switchTab(activeTab);
+}
+
+async function confirmDeleteExpense(id, btn) {
+  if (btn.dataset.confirm === '1') {
+    const { error } = await sb.from('expenses').delete().eq('id', id);
+    if (error) { alert('Erreur : ' + error.message); return; }
+    await loadUserData();
+    renderExpenses();
+  } else {
+    btn.dataset.confirm = '1';
+    btn.innerHTML = '<i data-lucide="alert-triangle" style="width:16px;height:16px"></i>Confirmer';
+    btn.classList.add('confirm');
+    lucide.createIcons();
+    setTimeout(() => {
+      btn.dataset.confirm = '0';
+      btn.innerHTML = '<i data-lucide="trash-2" style="width:16px;height:16px"></i>Supprimer';
+      btn.classList.remove('confirm');
+      lucide.createIcons();
+    }, 3000);
+  }
 }
 
 // ══════════════════════════════════════

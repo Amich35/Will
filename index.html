@@ -10,6 +10,17 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <title>Will — Ton co-pilote financier auto</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+// Initialisation anticipee (avant parsing du body)
+var SUPABASE_URL="https://rxxtkiewplwpfqzbwcpl.supabase.co";
+var SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4eHRraWV3cGx3cGZxemJ3Y3BsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMzcyMjAsImV4cCI6MjEwMDgxMzIyMH0.Bxr97u6L9ZGnfY3u5I-l_L4ofIXL6dBHZJwn9nv_HF4";
+var sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+var authMode="signup";
+var currentUser=null,vehicles=[],expenses=[],catalogOffers=[];
+var selectedVehicleId=null,selectedExpenseCat="all",selectedPeriod="12m";
+var editingExpenseId=null,editingVehicleId=null;
+</script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
 /* ══════════════════════════════════════
@@ -587,22 +598,7 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
    WILL — Application Logic
    ══════════════════════════════════════ */
 
-var SUPABASE_URL = 'https://rxxtkiewplwpfqzbwcpl.supabase.co';
-var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4eHRraWV3cGx3cGZxemJ3Y3BsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMzcyMjAsImV4cCI6MjEwMDgxMzIyMH0.Bxr97u6L9ZGnfY3u5I-l_L4ofIXL6dBHZJwn9nv_HF4';
-
-var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// ── State ──
-var currentUser = null;
-var vehicles = [];
-var expenses = [];
-var catalogOffers = [];
-var selectedVehicleId = null;
-var selectedExpenseCat = 'all';
-var selectedPeriod = '12m';
-var editingExpenseId = null;
-var editingVehicleId = null;
-var authMode = 'signup';
+// ── Vars globales initialisees dans <head> ──
 
 var PERIODS = [
   { key: 'today', label: "Aujourd'hui" },

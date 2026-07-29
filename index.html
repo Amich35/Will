@@ -649,35 +649,44 @@ async function doAuth() {
   btn.disabled = true;
   btn.textContent = 'Chargement…';
 
-  let result;
-  if (authMode === 'signup') {
-    result = await sb.auth.signUp({ email, password: pass });
-  } else {
-    result = await sb.auth.signInWithPassword({ email, password: pass });
-  }
+  try {
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Délai dépassé. Vérifiez votre connexion et réessayez.')), 15000)
+    );
 
-  btn.disabled = false;
-  btn.textContent = authMode === 'login' ? 'Se connecter' : 'Créer mon compte';
+    const authCall = authMode === 'signup'
+      ? sb.auth.signUp({ email, password: pass })
+      : sb.auth.signInWithPassword({ email, password: pass });
 
-  if (result.error) {
-    errEl.textContent = result.error.message;
+    const result = await Promise.race([authCall, timeout]);
+
+    if (result.error) {
+      errEl.textContent = result.error.message;
+      errEl.style.display = 'block';
+      return;
+    }
+
+    currentUser = result.data.user || result.data.session?.user;
+    if (!currentUser) {
+      errEl.textContent = 'Erreur inattendue. Veuillez réessayer.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    const { data: v } = await sb.from('vehicles').select('id').eq('user_id', currentUser.id).limit(1);
+    if (v && v.length > 0) {
+      await loadUserData();
+      showApp();
+    } else {
+      showObPage(3);
+    }
+
+  } catch (e) {
+    errEl.textContent = e.message || 'Erreur de connexion. Réessayez.';
     errEl.style.display = 'block';
-    return;
-  }
-
-  currentUser = result.data.user || result.data.session?.user;
-  if (!currentUser) {
-    errEl.textContent = 'Erreur inattendue. Veuillez réessayer.';
-    errEl.style.display = 'block';
-    return;
-  }
-
-  const { data: v } = await sb.from('vehicles').select('id').eq('user_id', currentUser.id).limit(1);
-  if (v && v.length > 0) {
-    await loadUserData();
-    showApp();
-  } else {
-    showObPage(3);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = authMode === 'login' ? 'Se connecter' : 'Créer mon compte';
   }
 }
 

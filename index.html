@@ -775,7 +775,7 @@ function renderToday() {
       <span style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.8px">Analyse Will</span>
     </div>
     <p style="font-size:15px;line-height:1.55;color:#E5E5EA">${insight.text}</p>
-    <div style="margin-top:16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px" onclick="switchTab('savings')">
+    <div style="margin-top:16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px" onclick="${insight.ctaAction}">
       <span style="font-size:13px;font-weight:600;color:var(--accent)">${insight.cta}</span>
       <i data-lucide="arrow-right" style="width:14px;height:14px;color:var(--accent)"></i>
     </div>
@@ -862,17 +862,159 @@ function renderToday() {
   animateHero();
 }
 
+// ══════════════════════════════════════
+// ANALYSE WILL — Moteur métier (7 règles en cascade)
+// ══════════════════════════════════════
+
+// Budgets mensuels de référence (source : Roole / ACA Consommateurs)
+const BUDGET_REF = {
+  citadine:   { essence:280, diesel:260, électrique:180, hybride:240 },
+  berline:    { essence:380, diesel:340, électrique:220, hybride:300 },
+  suv:        { essence:450, diesel:400, électrique:260, hybride:360 },
+  utilitaire: { essence:520, diesel:480, électrique:300, hybride:420 }
+};
+
 function generateInsight(vehicle, vExpenses, cats) {
-  if (!vehicle || vExpenses.length < 3) return { text: 'Ajoutez quelques dépenses supplémentaires pour que nous puissions analyser votre budget.', cta: 'En savoir plus' };
-  const topCat = Object.entries(cats).sort((a,b) => b[1] - a[1])[0];
-  if (topCat) {
+  // Fallback : pas assez de données
+  if (!vehicle || vExpenses.length < 3) {
     return {
-      text: `Votre poste <strong style="color:#fff">${CAT_LABELS[topCat[0]]}</strong> représente <strong style="color:var(--orange)">${Math.round(topCat[1])} €</strong> ce mois. C'est votre première source de dépense.`,
-      cta: 'Voir les offres ' + CAT_LABELS[topCat[0]].toLowerCase()
+      text: 'Ajoutez quelques dépenses supplémentaires pour que nous puissions analyser votre budget.',
+      cta: 'Ajouter une dépense',
+      ctaAction: "openExpenseSheet()"
     };
   }
-  return { text: 'Vos dépenses sont bien réparties ce mois-ci.', cta: 'Voir les économies' };
+
+  const now   = new Date();
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  // Helpers
+  const monthlyTotal = (exps, monthsAgo) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() - monthsAgo + 1, 0);
+    return exps.filter(e => { const ed = new Date(e.date); return ed >= d && ed <= end; })
+               .reduce((s,e) => s + parseFloat(e.amount), 0);
+  };
+
+  const catTotal = (exps, cat, monthsAgo) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() - monthsAgo + 1, 0);
+    return exps.filter(e => e.category === cat && new Date(e.date) >= d && new Date(e.date) <= end)
+               .reduce((s,e) => s + parseFloat(e.amount), 0);
+  };
+
+  // ── Règle 1 : URGENCE assurance ──
+  const lastAssurance = vExpenses.filter(e => e.category === 'assurance')
+    .sort((a,b) => new Date(b.date) - new Date(a.date))[0];
+  if (!lastAssurance) {
+    return {
+      text: 'Aucune dépense d\'assurance enregistrée. Pensez à ajouter votre contrat pour un suivi complet.',
+      cta: 'Voir les offres assurance',
+      ctaAction: "switchTab('savings')"
+    };
+  }
+  const daysSinceAssurance = Math.floor((now - new Date(lastAssurance.date)) / 86400000);
+  if (daysSinceAssurance > 395) {
+    return {
+      text: `Votre assurance n'a pas été renouvelée depuis plus d'un an. Pensez à vérifier votre contrat.`,
+      cta: 'Comparer les assurances',
+      ctaAction: "switchTab('savings')"
+    };
+  }
+
+  // ── Règle 2 : HAUSSE INHABITUELLE d'une catégorie ──
+  const cats3m = {};
+  ['carburant','entretien','assurance','péage','stationnement','financement'].forEach(cat => {
+    const avg3 = (catTotal(vExpenses, cat, 1) + catTotal(vExpenses, cat, 2) + catTotal(vExpenses, cat, 3)) / 3;
+    const curr = catTotal(vExpenses, cat, 0);
+    if (avg3 > 10 && curr > avg3 * 1.25) {
+      cats3m[cat] = { curr, avg3, pct: Math.round((curr / avg3 - 1) * 100) };
+    }
+  });
+  const topHausse = Object.entries(cats3m).sort((a,b) => b[1].pct - a[1].pct)[0];
+  if (topHausse) {
+    const [cat, data] = topHausse;
+    return {
+      text: `Vos dépenses <strong style="color:#fff">${CAT_LABELS[cat]}</strong> ont augmenté de <strong style="color:var(--orange)">${data.pct} %</strong> ce mois par rapport à votre moyenne habituelle.`,
+      cta: `Voir les offres ${CAT_LABELS[cat].toLowerCase()}`,
+      ctaAction: "switchTab('savings')"
+    };
+  }
+
+  // ── Règle 3 : ENTRETIEN À PRÉVOIR ──
+  const lastEntretien = vExpenses.filter(e => e.category === 'entretien')
+    .sort((a,b) => new Date(b.date) - new Date(a.date))[0];
+  if (lastEntretien) {
+    const daysSince = Math.floor((now - new Date(lastEntretien.date)) / 86400000);
+    const kmEstimated = vehicle.mileage ? Math.round((daysSince / 365) * 15000) : 0;
+    if (kmEstimated > 9000 || daysSince > 330) {
+      return {
+        text: `Votre dernier entretien remonte à <strong style="color:#fff">${Math.round(daysSince / 30)} mois</strong>. Une révision pourrait être à prévoir prochainement.`,
+        cta: 'Voir les offres entretien',
+        ctaAction: "switchTab('savings')"
+      };
+    }
+  } else if (vExpenses.length >= 5) {
+    return {
+      text: 'Aucun entretien enregistré. Ajoutez vos révisions pour que Will puisse anticiper les prochaines échéances.',
+      cta: 'Ajouter un entretien',
+      ctaAction: "openExpenseSheet()"
+    };
+  }
+
+  // ── Règle 4 : POSTE DOMINANT (> 40 % du budget mensuel) ──
+  const monthTotal = Object.values(cats).reduce((s,v) => s + v, 0);
+  if (monthTotal > 0) {
+    const topCat = Object.entries(cats).sort((a,b) => b[1] - a[1])[0];
+    if (topCat && topCat[1] / monthTotal > 0.40) {
+      const pct = Math.round(topCat[1] / monthTotal * 100);
+      return {
+        text: `Le poste <strong style="color:#fff">${CAT_LABELS[topCat[0]]}</strong> représente <strong style="color:var(--orange)">${pct} %</strong> de votre budget ce mois — c'est votre premier levier d'économies.`,
+        cta: `Réduire le coût ${CAT_LABELS[topCat[0]].toLowerCase()}`,
+        ctaAction: "switchTab('savings')"
+      };
+    }
+  }
+
+  // ── Règle 5 : COMPARAISON PROFIL ──
+  const ref = (BUDGET_REF[vehicle.vehicle_type] || BUDGET_REF.berline)[vehicle.fuel] || 350;
+  const currMonth = monthlyTotal(vExpenses, 0);
+  if (currMonth > 0 && currMonth > ref * 1.15) {
+    const ecart = Math.round(currMonth - ref);
+    return {
+      text: `Votre budget ce mois (<strong style="color:#fff">${Math.round(currMonth)} €</strong>) est supérieur de <strong style="color:var(--orange)">${ecart} €</strong> à la moyenne pour votre profil véhicule.`,
+      cta: 'Voir comment réduire',
+      ctaAction: "switchTab('savings')"
+    };
+  }
+
+  // ── Règle 6 : FÉLICITATION (budget en baisse) ──
+  const prevMonth = monthlyTotal(vExpenses, 1);
+  if (currMonth > 0 && prevMonth > 0 && currMonth < prevMonth * 0.90) {
+    const baisse = Math.round(prevMonth - currMonth);
+    return {
+      text: `Vos dépenses ont baissé de <strong style="color:var(--green)">${baisse} €</strong> ce mois par rapport au mois dernier. Continuez comme ça !`,
+      cta: 'Voir mes économies',
+      ctaAction: "switchTab('savings')"
+    };
+  }
+
+  // ── Règle 7 : FALLBACK équilibré ──
+  if (monthTotal > 0) {
+    const topCat = Object.entries(cats).sort((a,b) => b[1] - a[1])[0];
+    return {
+      text: `Vos dépenses sont bien réparties ce mois. Le poste <strong style="color:#fff">${CAT_LABELS[topCat[0]]}</strong> reste votre principal poste à <strong style="color:#fff">${Math.round(topCat[1])} €</strong>.`,
+      cta: 'Voir les économies',
+      ctaAction: "switchTab('savings')"
+    };
+  }
+
+  return {
+    text: 'Ajoutez quelques dépenses supplémentaires pour que nous puissions analyser votre budget.',
+    cta: 'Ajouter une dépense',
+    ctaAction: "openExpenseSheet()"
+  };
 }
+
 
 function animateHero() {
   const el = document.getElementById('hero-amount');

@@ -1709,7 +1709,7 @@ function renderAccount() {
 // PULL TO REFRESH
 // ══════════════════════════════════════
 function initPullToRefresh(scrollEl, indicatorEl, onRefresh) {
-  let startY = 0, startX = 0, pulling = false, threshold = 120;
+  let startY = 0, startX = 0, pulling = false, threshold = 200;
 
   scrollEl.addEventListener('touchstart', e => {
     if (scrollEl.scrollTop === 0) {

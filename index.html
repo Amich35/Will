@@ -413,6 +413,7 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   <div class="sheet-handle"></div>
   <h3 style="font-size:18px;font-weight:700;margin-bottom:20px;text-align:center">Période</h3>
   <div id="period-options"></div>
+  <button class="btn btn-secondary" onclick="closePeriodSheet()" style="margin-top:16px">Fermer</button>
 </div>
 
 <!-- Overlay + Bottom Sheet — Suppression compte -->
@@ -437,6 +438,7 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
     </div>
     <input id="delete-confirm-input" class="input-field" placeholder="SUPPRIMER" autocomplete="off" style="margin-bottom:16px;text-align:center;font-weight:600;letter-spacing:1px">
     <button class="btn" style="background:var(--red);color:#fff;margin-bottom:12px" onclick="confirmDeleteAccount()">Supprimer définitivement</button>
+    <button class="btn btn-secondary" onclick="showDeleteStep1()" style="margin-bottom:8px">Retour</button>
     <button class="btn btn-secondary" onclick="closeDeleteSheet()">Annuler</button>
   </div>
 </div>
@@ -492,7 +494,8 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
     <input id="veh-plate" class="input-field" placeholder="ex. AB-123-CD" autocapitalize="characters">
   </div>
   <button id="veh-save-btn" class="btn btn-primary" onclick="saveVehicle()">Ajouter</button>
-  <div id="veh-archive-wrap" style="display:none;text-align:center;margin-top:16px">
+  <button class="btn btn-secondary" onclick="closeVehicleSheet()" style="margin-top:10px">Annuler</button>
+  <div id="veh-archive-wrap" style="display:none;text-align:center;margin-top:8px">
     <button onclick="archiveVehicle()" style="background:none;border:none;font-size:14px;color:var(--orange);font-weight:600;cursor:pointer;padding:8px">Archiver ce véhicule</button>
   </div>
 </div>
@@ -522,6 +525,7 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
     <input id="exp-note" class="input-field" placeholder="ex. Vidange + filtres">
   </div>
   <button id="exp-save-btn" class="btn btn-primary" onclick="saveExpense()">Ajouter</button>
+  <button class="btn btn-secondary" onclick="closeExpenseSheet()" style="margin-top:10px">Annuler</button>
 </div>
 
 <!-- Fiche offre — slide-in -->
@@ -1522,6 +1526,35 @@ function closeOfferPanel() {
   setTimeout(() => { panel.style.display = 'none'; }, 300);
 }
 
+function initOfferPanelSwipe() {
+  const panel = document.getElementById('offer-panel');
+  let startX = 0, startY = 0, lockAxis = null;
+  panel.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    lockAxis = null;
+  }, { passive: true });
+  panel.addEventListener('touchmove', e => {
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (!lockAxis) lockAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+    if (lockAxis === 'x' && dx > 0) {
+      e.preventDefault();
+      panel.style.transition = 'none';
+      panel.style.transform = `translateX(${Math.min(dx, window.innerWidth)}px)`;
+    }
+  }, { passive: false });
+  panel.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    panel.style.transition = 'transform 0.3s ease';
+    if (lockAxis === 'x' && dx > 80) {
+      closeOfferPanel();
+    } else {
+      panel.style.transform = 'translateX(0)';
+    }
+  }, { passive: true });
+}
+
 async function goToPartner(offerId) {
   const o = catalogOffers.find(o => o.id === offerId);
   if (!o) return;
@@ -1832,6 +1865,12 @@ function showDeleteStep2() {
   setTimeout(() => document.getElementById('delete-confirm-input').focus(), 300);
 }
 
+function showDeleteStep1() {
+  document.getElementById('delete-step2').style.display = 'none';
+  document.getElementById('delete-step1').style.display = 'block';
+  document.getElementById('delete-confirm-input').value = '';
+}
+
 function closeDeleteSheet() {
   document.getElementById('delete-overlay').classList.remove('show');
   document.getElementById('delete-sheet').classList.remove('show');
@@ -1990,6 +2029,7 @@ if ('serviceWorker' in navigator) {
 }
 
 // ── Start ──
+initOfferPanelSwipe();
 init();
 </script>
 </body>

@@ -361,6 +361,11 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
         <i data-lucide="chevron-down" style="width:14px;height:14px"></i>
       </button>
     </div>
+    <div style="position:relative;margin-top:10px">
+      <i data-lucide="search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text3);pointer-events:none"></i>
+      <input id="expense-search" class="input-field" placeholder="Rechercher…" oninput="renderExpenses()"
+        style="padding-left:36px;height:38px;font-size:14px;background:rgba(0,0,0,0.04);border-color:transparent">
+    </div>
   </div>
   <div id="expenses-list" class="scroll-content" style="padding-top:12px"></div>
 </div>
@@ -699,7 +704,11 @@ function switchTab(tab) {
 
   if (tab === 'today') renderToday();
   else if (tab === 'garage') renderGarage();
-  else if (tab === 'expenses') renderExpenses();
+  else if (tab === 'expenses') {
+    const s = document.getElementById('expense-search');
+    if (s) s.value = '';
+    renderExpenses();
+  }
   else if (tab === 'savings') renderSavings();
   else if (tab === 'account') renderAccount();
 
@@ -1261,14 +1270,25 @@ function renderExpenses() {
   filtered = filterByPeriod(filtered);
   if (selectedExpenseCat !== 'all') filtered = filtered.filter(e => e.category === selectedExpenseCat);
 
+  // Recherche
+  const searchVal = (document.getElementById('expense-search')?.value || '').toLowerCase().trim();
+  if (searchVal) {
+    filtered = filtered.filter(e =>
+      (e.label || '').toLowerCase().includes(searchVal) ||
+      (e.note || '').toLowerCase().includes(searchVal) ||
+      CAT_LABELS[e.category]?.toLowerCase().includes(searchVal)
+    );
+  }
+
   const container = document.getElementById('expenses-list');
 
   if (filtered.length === 0) {
+    const isEmpty = expenses.filter(e => e.vehicle_id === selectedVehicleId).length === 0;
     container.innerHTML = `<div style="text-align:center;padding:40px 20px">
-      <i data-lucide="receipt" style="width:40px;height:40px;color:var(--text3);margin-bottom:12px"></i>
-      <p style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">Aucune dépense enregistrée.</p>
-      <p style="font-size:14px;color:var(--text2);margin-bottom:16px">Commencez par ajouter votre premier plein, votre assurance ou un entretien.</p>
-      <button class="btn btn-primary" style="max-width:240px;margin:0 auto" onclick="openExpenseSheet()">Ajouter une dépense</button>
+      <i data-lucide="${searchVal ? 'search-x' : 'receipt'}" style="width:40px;height:40px;color:var(--text3);margin-bottom:12px"></i>
+      <p style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">${searchVal ? 'Aucun résultat' : 'Aucune dépense enregistrée.'}</p>
+      <p style="font-size:14px;color:var(--text2);margin-bottom:16px">${searchVal ? `Aucune dépense ne correspond à « ${searchVal} ».` : 'Commencez par ajouter votre premier plein, votre assurance ou un entretien.'}</p>
+      ${!searchVal ? `<button class="btn btn-primary" style="max-width:240px;margin:0 auto" onclick="openExpenseSheet()">Ajouter une dépense</button>` : ''}
     </div>`;
     lucide.createIcons();
     return;

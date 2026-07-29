@@ -490,6 +490,27 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   <button id="exp-save-btn" class="btn btn-primary" onclick="saveExpense()">Ajouter</button>
 </div>
 
+<!-- Fiche offre — slide-in -->
+<div id="offer-panel" style="position:fixed;inset:0;z-index:300;transform:translateX(100%);transition:transform 0.3s ease;background:var(--bg);display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;gap:12px;padding:56px 20px 16px;background:var(--card);box-shadow:var(--shadow)">
+    <button onclick="closeOfferPanel()" style="width:32px;height:32px;border-radius:50%;border:none;background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+      <i data-lucide="chevron-left" style="width:20px;height:20px;color:var(--text)"></i>
+    </button>
+    <span style="font-size:17px;font-weight:600;color:var(--text)">Détail de l'offre</span>
+  </div>
+  <div id="offer-panel-content" style="flex:1;overflow-y:auto;padding:24px 20px calc(40px + var(--safe-bottom))"></div>
+</div>
+
+<!-- Transition redirect partenaire -->
+<div id="partner-transition" style="position:fixed;inset:0;z-index:400;background:var(--card);display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px">
+  <div id="partner-logo-wrap" style="width:64px;height:64px;border-radius:18px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--text2)"></div>
+  <p style="font-size:16px;font-weight:600;color:var(--text)">Préparation de votre offre…</p>
+  <p style="font-size:13px;color:var(--text2);text-align:center;max-width:260px">Cette offre a été sélectionnée selon votre véhicule et votre historique.</p>
+  <div style="width:40px;height:3px;border-radius:2px;background:var(--sep);overflow:hidden;margin-top:8px">
+    <div id="partner-progress" style="height:100%;background:var(--accent);width:0%;transition:width 0.4s ease"></div>
+  </div>
+</div>
+
 <script>
 /* ══════════════════════════════════════
    WILL — Application Logic
@@ -504,10 +525,12 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = null;
 let vehicles = [];
 let expenses = [];
+let catalogOffers = [];
 let selectedVehicleId = null;
 let selectedExpenseCat = 'all';
 let selectedPeriod = '12m';
 let editingExpenseId = null;
+let editingVehicleId = null;
 
 const PERIODS = [
   { key: 'today', label: "Aujourd'hui" },
@@ -633,6 +656,9 @@ async function loadUserData() {
 
   const { data: e } = await sb.from('expenses').select('*').eq('user_id', uid).order('date', { ascending: false });
   expenses = e || [];
+
+  const { data: o } = await sb.from('catalog_offers').select('*').eq('active', true).order('category');
+  catalogOffers = o || [];
 }
 
 function switchTab(tab) {
@@ -1208,6 +1234,15 @@ function renderExpenses() {
 // ══════════════════════════════════════
 // RENDER — ÉCONOMIES
 // ══════════════════════════════════════
+function getRelevantOffers(vehicle) {
+  if (!vehicle || catalogOffers.length === 0) return [];
+  return catalogOffers.filter(o => {
+    if (!o.vehicle_filter || o.vehicle_filter === 'all') return true;
+    const filters = o.vehicle_filter.split(',').map(f => f.trim().toLowerCase());
+    return filters.includes(vehicle.fuel?.toLowerCase()) || filters.includes(vehicle.vehicle_type?.toLowerCase());
+  });
+}
+
 function renderSavings() {
   const pillsEl = document.getElementById('savings-pills');
   pillsEl.innerHTML = vehicles.map(v =>
@@ -1216,59 +1251,191 @@ function renderSavings() {
 
   const vehicle = vehicles.find(v => v.id === selectedVehicleId);
   const container = document.getElementById('savings-content');
+  const relevant = getRelevantOffers(vehicle);
 
-  container.innerHTML = `
-    <div style="padding:8px 4px;margin-bottom:8px">
-      <p style="font-size:14px;color:var(--text2);line-height:1.5">Parce que vous roulez avec ${vehicle ? `un${vehicle.fuel === 'essence' ? 'e' : ''} ${vehicle.fuel}` : 'votre véhicule'}.</p>
-      <p style="font-size:14px;color:var(--text);font-weight:600;margin-top:4px">Nous avons trouvé des offres adaptées à votre véhicule.</p>
-    </div>
+  // ── Hero contextuel ──
+  const fuelLabel = vehicle ? (vehicle.fuel === 'électrique' ? 'un véhicule électrique' : `un${vehicle.fuel === 'essence' ? 'e' : ''} ${vehicle.fuel}`) : 'votre véhicule';
+  let html = `<div style="padding:4px 4px 16px">
+    <p style="font-size:14px;color:var(--text2);line-height:1.6">Parce que vous roulez avec <strong style="color:var(--text)">${fuelLabel}</strong>.</p>
+    <p style="font-size:15px;color:var(--text);font-weight:600;margin-top:4px">
+      ${relevant.length > 0 ? `${relevant.length} offre${relevant.length > 1 ? 's' : ''} adaptée${relevant.length > 1 ? 's' : ''} à votre véhicule.` : 'Nous cherchons les meilleures offres pour votre profil.'}
+    </p>
+  </div>`;
 
-    <div style="font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;padding:4px 4px 8px">Pour ${vehicle ? 'votre ' + vehicle.brand + ' ' + vehicle.model : 'vous'}</div>
+  // ── Bloc "Pour vous" ──
+  if (relevant.length > 0) {
+    html += `<div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;padding:0 4px 10px">Pour votre ${vehicle ? vehicle.brand + ' ' + vehicle.model : 'véhicule'}</div>`;
+    relevant.slice(0, 3).forEach((o, i) => {
+      html += renderOfferCard(o, vehicle, i * 60, true);
+    });
+  }
 
-    <div class="card fade-up" style="cursor:pointer">
-      <div style="font-size:11px;color:var(--accent);font-weight:600;margin-bottom:8px">Basé sur votre profil véhicule</div>
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="width:44px;height:44px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text2);flex-shrink:0">ALL</div>
-        <div style="flex:1">
-          <p style="font-size:16px;font-weight:600;color:var(--text)">Allianz</p>
-          <p style="font-size:22px;font-weight:700;color:var(--green);margin-top:4px">Économisez 142 €/an</p>
-          <p style="font-size:13px;color:var(--text2);margin-top:6px"><strong>Pourquoi ?</strong> Votre assurance est estimée au-dessus de la moyenne pour ce profil.</p>
-        </div>
+  // ── Bloc "Explorer" ──
+  const CAT_SAVINGS = { assurance:'#007AFF', entretien:'#34C759', carburant:'#FF9500', financement:'#AF52DE', équipement:'#5AC8FA', services:'#8E8E93' };
+  const CAT_SAVINGS_ICONS = { assurance:'shield', entretien:'wrench', carburant:'fuel', financement:'landmark', équipement:'settings', services:'headphones' };
+  html += `<div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;padding:16px 4px 10px">Explorer</div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">`;
+  Object.entries(CAT_SAVINGS).forEach(([cat, color]) => {
+    const count = catalogOffers.filter(o => o.category === cat).length;
+    html += `<div class="card" style="flex:1;min-width:calc(50% - 4px);padding:14px;cursor:pointer;text-align:center;box-shadow:none;border:1px solid var(--sep)" onclick="renderSavingsByCategory('${cat}')">
+      <div style="width:32px;height:32px;border-radius:9px;background:${color}18;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
+        <i data-lucide="${CAT_SAVINGS_ICONS[cat]}" style="width:16px;height:16px;color:${color}"></i>
       </div>
-      <div style="margin-top:14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer">
-        <span style="font-size:13px;font-weight:600;color:var(--accent)">Voir les détails</span>
-        <i data-lucide="arrow-right" style="width:14px;height:14px;color:var(--accent)"></i>
-      </div>
-    </div>
+      <span style="font-size:13px;font-weight:600;color:var(--text);text-transform:capitalize;display:block">${cat}</span>
+      ${count > 0 ? `<span style="font-size:11px;color:var(--text3);margin-top:2px;display:block">${count} offre${count > 1 ? 's' : ''}</span>` : ''}
+    </div>`;
+  });
+  html += `</div>`;
 
-    <div class="card fade-up" style="cursor:pointer;animation-delay:60ms">
-      <div style="font-size:11px;color:var(--accent);font-weight:600;margin-bottom:8px">Basé sur votre kilométrage</div>
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="width:44px;height:44px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text2);flex-shrink:0">NOR</div>
-        <div style="flex:1">
-          <p style="font-size:16px;font-weight:600;color:var(--text)">Norauto</p>
-          <p style="font-size:22px;font-weight:700;color:var(--green);margin-top:4px">-25 % révision</p>
-          <p style="font-size:13px;color:var(--text2);margin-top:6px"><strong>Pourquoi ?</strong> Votre prochaine révision constructeur approche.</p>
-        </div>
-      </div>
-      <div style="margin-top:14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer">
-        <span style="font-size:13px;font-weight:600;color:var(--accent)">Voir les détails</span>
-        <i data-lucide="arrow-right" style="width:14px;height:14px;color:var(--accent)"></i>
-      </div>
-    </div>
+  // ── Bloc "Tous les partenaires" ──
+  if (catalogOffers.length > 3) {
+    html += `<div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;padding:16px 4px 10px">Toutes les offres</div>`;
+    catalogOffers.forEach((o, i) => {
+      if (!relevant.slice(0,3).find(r => r.id === o.id)) {
+        html += renderOfferCard(o, vehicle, i * 40, false);
+      }
+    });
+  }
 
-    <div style="font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;padding:16px 4px 8px">Explorer</div>
+  // ── État vide ──
+  if (catalogOffers.length === 0) {
+    html += `<div class="card" style="text-align:center;padding:40px 20px;margin-top:8px">
+      <i data-lucide="piggy-bank" style="width:40px;height:40px;color:var(--text3);margin-bottom:12px"></i>
+      <p style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">Bientôt disponible</p>
+      <p style="font-size:14px;color:var(--text2)">Nos partenaires arrivent prochainement. Revenez bientôt !</p>
+    </div>`;
+  }
 
-    <div style="display:flex;flex-wrap:wrap;gap:8px">
-      ${Object.entries({assurance:'#007AFF',entretien:'#34C759',carburant:'#FF9500',financement:'#AF52DE','équipement':'#5AC8FA',services:'#8E8E93'}).map(([cat,color]) =>
-        `<div class="card" style="flex:1;min-width:calc(50% - 4px);padding:16px;cursor:pointer;text-align:center">
-          <div style="width:10px;height:10px;border-radius:5px;background:${color};margin:0 auto 8px"></div>
-          <span style="font-size:13px;font-weight:600;color:var(--text);text-transform:capitalize">${cat}</span>
-        </div>`
-      ).join('')}
-    </div>
-  `;
+  container.innerHTML = html;
   lucide.createIcons();
+}
+
+function renderOfferCard(o, vehicle, delay, showJustif) {
+  const CAT_COLORS_S = { assurance:'#007AFF', entretien:'#34C759', carburant:'#FF9500', financement:'#AF52DE', équipement:'#5AC8FA', services:'#8E8E93' };
+  const color = CAT_COLORS_S[o.category] || '#8E8E93';
+  const initials = o.partner.substring(0,3).toUpperCase();
+  return `<div class="card fade-up" style="cursor:pointer;margin-bottom:0;animation-delay:${delay}ms" onclick="openOfferPanel('${o.id}')">
+    ${showJustif && o.justification_template ? `<div style="font-size:11px;color:var(--accent);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:4px"><i data-lucide="sparkles" style="width:11px;height:11px"></i>${o.justification_template}</div>` : ''}
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:44px;height:44px;border-radius:12px;background:${color}12;border:1px solid ${color}25;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${color};flex-shrink:0">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <p style="font-size:16px;font-weight:600;color:var(--text)">${o.partner}</p>
+        <p style="font-size:22px;font-weight:700;color:var(--green);margin-top:2px">${o.discount}</p>
+        <p style="font-size:13px;color:var(--text2);margin-top:6px;line-height:1.4">${o.description.substring(0,80)}${o.description.length > 80 ? '…' : ''}</p>
+      </div>
+    </div>
+    ${vehicle ? `<div style="display:inline-flex;align-items:center;gap:4px;margin-top:10px;padding:4px 10px;border-radius:8px;background:${color}10">
+      <span style="font-size:11px;font-weight:600;color:${color}">Pour votre ${vehicle.brand} ${vehicle.model}</span>
+    </div>` : ''}
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--sep)">
+      <span style="font-size:13px;font-weight:600;color:var(--accent)">Voir les détails</span>
+      <i data-lucide="arrow-right" style="width:14px;height:14px;color:var(--accent)"></i>
+    </div>
+  </div>`;
+}
+
+function renderSavingsByCategory(cat) {
+  const vehicle = vehicles.find(v => v.id === selectedVehicleId);
+  const container = document.getElementById('savings-content');
+  const filtered = catalogOffers.filter(o => o.category === cat);
+  const CAT_LABELS_S = { assurance:'Assurance', entretien:'Entretien', carburant:'Carburant', financement:'Financement', équipement:'Équipement', services:'Services' };
+
+  let html = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+    <button onclick="renderSavings()" style="background:none;border:none;font-size:13px;color:var(--accent);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;padding:0">
+      <i data-lucide="chevron-left" style="width:16px;height:16px"></i>Économies
+    </button>
+    <span style="font-size:13px;color:var(--text3)">/ ${CAT_LABELS_S[cat] || cat}</span>
+  </div>`;
+
+  if (filtered.length === 0) {
+    html += `<div class="card" style="text-align:center;padding:32px"><p style="color:var(--text2)">Aucune offre dans cette catégorie pour l'instant.</p></div>`;
+  } else {
+    filtered.forEach((o, i) => { html += renderOfferCard(o, vehicle, i * 60, true); });
+  }
+  container.innerHTML = html;
+  lucide.createIcons();
+}
+
+// ── Fiche offre ──
+function openOfferPanel(offerId) {
+  const o = catalogOffers.find(o => o.id === offerId);
+  if (!o) return;
+  const vehicle = vehicles.find(v => v.id === selectedVehicleId);
+  const CAT_COLORS_S = { assurance:'#007AFF', entretien:'#34C759', carburant:'#FF9500', financement:'#AF52DE', équipement:'#5AC8FA', services:'#8E8E93' };
+  const color = CAT_COLORS_S[o.category] || '#8E8E93';
+  const initials = o.partner.substring(0,3).toUpperCase();
+
+  document.getElementById('offer-panel-content').innerHTML = `
+    <div style="text-align:center;padding:24px 0 28px">
+      <div style="width:72px;height:72px;border-radius:20px;background:${color}12;border:1px solid ${color}25;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:${color};margin:0 auto 16px">${initials}</div>
+      <p style="font-size:22px;font-weight:700;color:var(--text)">${o.partner}</p>
+      <p style="font-size:28px;font-weight:800;color:var(--green);margin-top:6px;letter-spacing:-0.5px">${o.discount}</p>
+    </div>
+
+    <div class="card" style="margin-bottom:12px">
+      <p style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Pourquoi cette offre ?</p>
+      <p style="font-size:15px;color:var(--text);line-height:1.55">${o.justification_template || 'Offre sélectionnée pour votre profil véhicule.'}</p>
+      ${vehicle ? `<div style="display:inline-flex;align-items:center;gap:4px;margin-top:10px;padding:4px 10px;border-radius:8px;background:${color}10">
+        <span style="font-size:11px;font-weight:600;color:${color}">Pour votre ${vehicle.brand} ${vehicle.model}</span>
+      </div>` : ''}
+    </div>
+
+    <div class="card" style="margin-bottom:12px">
+      <p style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Ce que comprend l'offre</p>
+      <p style="font-size:15px;color:var(--text);line-height:1.55">${o.description}</p>
+      ${o.code ? `<div style="margin-top:12px;padding:10px 14px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:13px;color:var(--text2)">Code promo</span>
+        <span style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:1px">${o.code}</span>
+      </div>` : ''}
+    </div>
+
+    <div class="card" style="margin-bottom:28px">
+      <p style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Conditions</p>
+      <p style="font-size:13px;color:var(--text2);line-height:1.5">${o.conditions || 'Voir conditions sur le site partenaire.'}</p>
+    </div>
+
+    <button class="btn btn-primary" onclick="goToPartner('${o.id}')" style="margin-bottom:12px">Continuer vers le partenaire</button>
+    <p style="font-size:12px;color:var(--text3);text-align:center;line-height:1.5">Will recommande ce partenaire pour sa fiabilité et son rapport qualité-prix. Vous serez redirigé vers son site.</p>
+  `;
+
+  const panel = document.getElementById('offer-panel');
+  panel.style.display = 'flex';
+  panel.style.flexDirection = 'column';
+  requestAnimationFrame(() => { panel.style.transform = 'translateX(0)'; });
+  lucide.createIcons();
+}
+
+function closeOfferPanel() {
+  const panel = document.getElementById('offer-panel');
+  panel.style.transform = 'translateX(100%)';
+  setTimeout(() => { panel.style.display = 'none'; }, 300);
+}
+
+async function goToPartner(offerId) {
+  const o = catalogOffers.find(o => o.id === offerId);
+  if (!o) return;
+
+  // Tracking B2B
+  await sb.from('offer_clicks').insert({
+    user_id: currentUser.id,
+    offer_id: o.id,
+    vehicle_id: selectedVehicleId,
+    clicked_at: new Date().toISOString()
+  });
+
+  // Transition visuelle 400ms
+  const wrap = document.getElementById('partner-logo-wrap');
+  wrap.textContent = o.partner.substring(0,3).toUpperCase();
+  const trans = document.getElementById('partner-transition');
+  trans.style.display = 'flex';
+  const bar = document.getElementById('partner-progress');
+  requestAnimationFrame(() => { bar.style.width = '100%'; });
+
+  setTimeout(() => {
+    trans.style.display = 'none';
+    bar.style.width = '0%';
+    if (o.url) window.open(o.url, '_blank');
+  }, 450);
 }
 
 // ══════════════════════════════════════
@@ -1535,8 +1702,6 @@ async function confirmDeleteExpense(id, btn) {
 // ══════════════════════════════════════
 // VEHICLE SHEET — AJOUT / MODIFICATION
 // ══════════════════════════════════════
-let editingVehicleId = null;
-
 function openAddVehicle() {
   editingVehicleId = null;
   document.getElementById('veh-sheet-title').textContent = 'Nouveau véhicule';

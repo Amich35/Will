@@ -320,16 +320,17 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div>
         <h1 id="garage-hello" style="font-size:28px;font-weight:700;letter-spacing:-0.5px">Bonjour</h1>
-        <p id="garage-status" style="font-size:14px;color:var(--green);margin-top:4px">Votre garage est en bonne santé</p>
       </div>
       <div id="avatar-garage" style="width:36px;height:36px;border-radius:18px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:600"></div>
     </div>
-    <div id="garage-total" style="text-align:center;padding:24px 0">
+    <!-- Barre de synthèse -->
+    <div id="garage-synth" style="display:flex;align-items:center;gap:6px;margin-top:8px;min-height:20px"></div>
+    <div id="garage-total" style="text-align:center;padding:20px 0 4px">
       <p id="garage-amount" style="font-size:36px;font-weight:800;letter-spacing:-1px;color:var(--text)">0 €</p>
-      <p style="font-size:13px;color:var(--text2);margin-top:4px">dépensés ce mois</p>
+      <p style="font-size:13px;color:var(--text2);margin-top:4px">dépensés ce mois · foyer</p>
     </div>
   </div>
-  <div id="garage-cards" class="scroll-content" style="padding-top:0"></div>
+  <div id="garage-cards" class="scroll-content" style="padding-top:8px"></div>
 </div>
 
 <div id="app-today" class="screen">
@@ -408,7 +409,34 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   <div id="period-options"></div>
 </div>
 
-<!-- Overlay + Bottom Sheet — Ajout/Modif véhicule -->
+<!-- Overlay + Bottom Sheet — Suppression compte -->
+<div class="overlay" id="delete-overlay" onclick="closeDeleteSheet()"></div>
+<div class="bottom-sheet" id="delete-sheet">
+  <div class="sheet-handle"></div>
+  <div id="delete-step1">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="width:52px;height:52px;border-radius:16px;background:rgba(255,59,48,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+        <i data-lucide="trash-2" style="width:24px;height:24px;color:var(--red)"></i>
+      </div>
+      <h3 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px">Supprimer mon compte</h3>
+      <p style="font-size:14px;color:var(--text2);line-height:1.5">Votre compte sera supprimé. Vos véhicules, vos dépenses et vos analyses seront définitivement effacés.</p>
+    </div>
+    <button class="btn" style="background:var(--red);color:#fff;margin-bottom:12px" onclick="showDeleteStep2()">Continuer</button>
+    <button class="btn btn-secondary" onclick="closeDeleteSheet()">Annuler</button>
+  </div>
+  <div id="delete-step2" style="display:none">
+    <div style="text-align:center;margin-bottom:24px">
+      <h3 style="font-size:18px;font-weight:700;color:var(--red);margin-bottom:8px">Confirmation finale</h3>
+      <p style="font-size:14px;color:var(--text2);line-height:1.5">Pour confirmer, saisissez <strong style="color:var(--text)">SUPPRIMER</strong> ci-dessous.</p>
+    </div>
+    <input id="delete-confirm-input" class="input-field" placeholder="SUPPRIMER" autocomplete="off" style="margin-bottom:16px;text-align:center;font-weight:600;letter-spacing:1px">
+    <button class="btn" style="background:var(--red);color:#fff;margin-bottom:12px" onclick="confirmDeleteAccount()">Supprimer définitivement</button>
+    <button class="btn btn-secondary" onclick="closeDeleteSheet()">Annuler</button>
+  </div>
+</div>
+
+<!-- Overlay + Bottom Sheet — Suppression compte -->
+
 <div class="overlay" id="vehicle-overlay" onclick="closeVehicleSheet()"></div>
 <div class="bottom-sheet" id="vehicle-sheet" style="max-height:92vh;overflow-y:auto">
   <div class="sheet-handle"></div>
@@ -867,21 +895,33 @@ function renderToday() {
     </div>`;
   }
 
-  // ⑦ TEASER PARTENAIRE
-  html += `<div class="card fade-up" style="padding:14px 16px;border:1px solid var(--sep);box-shadow:none;max-height:100px;cursor:pointer;animation-delay:360ms" onclick="switchTab('savings')">
-    <div style="display:flex;align-items:center;justify-content:space-between">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="width:40px;height:40px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text2)">ALL</div>
-        <div>
-          <span style="font-size:14px;font-weight:600;color:var(--text)">Allianz</span>
-          <p style="font-size:12px;color:var(--text2);margin-top:2px">Assurance auto tous risques</p>
+  // ⑦ TEASER PARTENAIRE — première offre pertinente (toujours en dernier)
+  const teaserVehicle = vehicles.find(v => v.id === selectedVehicleId);
+  const relevantOffers = catalogOffers.filter(o => {
+    if (!o.vehicle_filter || o.vehicle_filter === 'all') return true;
+    const f = o.vehicle_filter.split(',').map(s => s.trim().toLowerCase());
+    return teaserVehicle && (f.includes(teaserVehicle.fuel?.toLowerCase()) || f.includes(teaserVehicle.vehicle_type?.toLowerCase()));
+  });
+  if (relevantOffers.length > 0) {
+    const teaser = relevantOffers[0];
+    const CAT_COLORS_T = { assurance:'#007AFF', entretien:'#34C759', carburant:'#FF9500', financement:'#AF52DE', équipement:'#5AC8FA', services:'#8E8E93' };
+    const tColor = CAT_COLORS_T[teaser.category] || '#8E8E93';
+    const tInit = teaser.partner.substring(0,3).toUpperCase();
+    html += `<div class="card fade-up" style="padding:14px 16px;border:1px solid var(--sep);box-shadow:none;cursor:pointer;animation-delay:360ms;overflow:hidden" onclick="switchTab('savings')">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0">
+          <div style="width:40px;height:40px;border-radius:10px;background:${tColor}12;border:1px solid ${tColor}25;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${tColor};flex-shrink:0">${tInit}</div>
+          <div style="min-width:0">
+            <span style="font-size:14px;font-weight:600;color:var(--text)">${teaser.partner}</span>
+            <p style="font-size:12px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${teaser.title}</p>
+          </div>
+        </div>
+        <div style="padding:4px 10px;border-radius:8px;background:rgba(52,199,89,0.1);flex-shrink:0;margin-left:8px">
+          <span style="font-size:13px;font-weight:700;color:var(--green)">${teaser.discount}</span>
         </div>
       </div>
-      <div style="padding:4px 10px;border-radius:8px;background:rgba(0,122,255,0.08)">
-        <span style="font-size:14px;font-weight:700;color:var(--accent)">-18 %</span>
-      </div>
-    </div>
-  </div>`;
+    </div>`;
+  }
 
   container.innerHTML = html;
   lucide.createIcons();
@@ -1060,19 +1100,55 @@ function animateHero() {
 // ══════════════════════════════════════
 // RENDER — GARAGE
 // ══════════════════════════════════════
+function animateCounter(el, target, duration) {
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    el.textContent = Math.round(ease * target).toLocaleString('fr-FR') + ' €';
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
 function renderGarage() {
   const name = getUserName();
   document.getElementById('garage-hello').textContent = 'Bonjour ' + name;
   document.getElementById('avatar-garage').textContent = name.charAt(0).toUpperCase();
 
   const now = new Date();
-  const totalFoyer = expenses.filter(e => {
+  const mExpenses = expenses.filter(e => {
     const d = new Date(e.date);
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).reduce((s,e) => s + parseFloat(e.amount), 0);
+  });
+  const totalFoyer = mExpenses.reduce((s,e) => s + parseFloat(e.amount), 0);
 
-  document.getElementById('garage-amount').textContent = Math.round(totalFoyer) + ' €';
-  document.getElementById('garage-total').style.display = vehicles.length > 1 ? 'block' : 'none';
+  // Barre de synthèse
+  const needsAttention = vehicles.some(v => {
+    const vExp = expenses.filter(e => e.vehicle_id === v.id);
+    const lastAss = vExp.filter(e => e.category === 'assurance').sort((a,b) => new Date(b.date)-new Date(a.date))[0];
+    if (!lastAss) return false;
+    return Math.floor((now - new Date(lastAss.date)) / 86400000) > 395;
+  });
+  const phraseEtat = needsAttention ? '1 véhicule nécessite votre attention' : 'Votre garage est en bonne santé';
+  const synthEl = document.getElementById('garage-synth');
+  if (synthEl) {
+    synthEl.innerHTML = vehicles.length > 0
+      ? `<i data-lucide="${needsAttention ? 'alert-circle' : 'check-circle'}" style="width:14px;height:14px;color:${needsAttention ? 'var(--orange)' : 'var(--green)'}"></i>
+         <span style="font-size:13px;color:var(--text2)">${phraseEtat}</span>`
+      : '';
+  }
+
+  // Total foyer animé (multi-véhicules uniquement)
+  const totalBlock = document.getElementById('garage-total');
+  const amountEl = document.getElementById('garage-amount');
+  if (vehicles.length > 1) {
+    totalBlock.style.display = 'block';
+    amountEl.textContent = '0 €';
+    animateCounter(amountEl, Math.round(totalFoyer), 800);
+  } else {
+    totalBlock.style.display = 'none';
+  }
 
   const TYPE_COLORS = { citadine:'#007AFF', suv:'#34C759', berline:'#6E6E73', utilitaire:'#FF9500' };
   const TYPE_ICONS  = { citadine:'car', suv:'truck', berline:'car', utilitaire:'package' };
@@ -1083,7 +1159,7 @@ function renderGarage() {
       <i data-lucide="car" style="width:48px;height:48px;color:var(--text3);margin-bottom:16px"></i>
       <p style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px">Votre garage est vide.</p>
       <p style="font-size:14px;color:var(--text2);margin-bottom:20px">Ajoutez votre premier véhicule pour commencer à suivre vos dépenses.</p>
-      <button class="btn btn-primary" style="max-width:260px;margin:0 auto" onclick="showObPage(3);document.getElementById('onboarding').classList.add('active')">Ajouter un véhicule</button>
+      <button class="btn btn-primary" style="max-width:260px;margin:0 auto" onclick="openAddVehicle()">Ajouter un véhicule</button>
       <p style="font-size:12px;color:var(--text3);margin-top:8px">Gratuit · 30 secondes</p>
     </div>`;
     lucide.createIcons();
@@ -1097,7 +1173,21 @@ function renderGarage() {
     const mTotal = mExp.reduce((s,e) => s + parseFloat(e.amount), 0);
     const color = TYPE_COLORS[v.vehicle_type] || '#6E6E73';
     const icon  = TYPE_ICONS[v.vehicle_type]  || 'car';
-    const hasEntretien = vExp.some(e => e.category === 'entretien');
+
+    // État badge
+    const lastAss = vExp.filter(e => e.category === 'assurance').sort((a,b) => new Date(b.date)-new Date(a.date))[0];
+    const assExpired = lastAss && Math.floor((now - new Date(lastAss.date)) / 86400000) > 395;
+    const lastEnt = vExp.filter(e => e.category === 'entretien').sort((a,b) => new Date(b.date)-new Date(a.date))[0];
+    const entSoon = lastEnt && Math.floor((now - new Date(lastEnt.date)) / 86400000) > 270;
+
+    let badgeColor, badgeText;
+    if (assExpired) {
+      badgeColor = 'var(--red)'; badgeText = 'Assurance à vérifier';
+    } else if (entSoon) {
+      badgeColor = 'var(--orange)'; badgeText = 'Révision bientôt à prévoir';
+    } else {
+      badgeColor = 'var(--green)'; badgeText = 'Tout est à jour · Aucune action requise';
+    }
 
     html += `<div class="card fade-up" style="cursor:pointer;animation-delay:${i*40}ms;padding:20px" onclick="selectVehicle('${v.id}');switchTab('today')">
       <div style="display:flex;align-items:center;gap:16px">
@@ -1111,14 +1201,14 @@ function renderGarage() {
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--sep)">
-        <div style="width:6px;height:6px;border-radius:3px;background:var(--green)"></div>
-        <span style="font-size:12px;color:var(--text2)">${hasEntretien ? 'Prochaine étape · Révision estimée' : 'Tout est à jour · Aucune action requise'}</span>
+        <div style="width:6px;height:6px;border-radius:3px;background:${badgeColor};flex-shrink:0"></div>
+        <span style="font-size:12px;color:var(--text2)">${badgeText}</span>
       </div>
     </div>`;
   });
 
-  // Add vehicle card
-  html += `<div class="card fade-up" style="border:1.5px dashed var(--sep);box-shadow:none;text-align:center;cursor:pointer;padding:24px;animation-delay:${vehicles.length*40}ms" onclick="showObPage(3);document.getElementById('onboarding').classList.add('active')">
+  // Carte ajouter — utilise le bottom sheet (pas l'onboarding)
+  html += `<div class="card fade-up" style="border:1.5px dashed var(--sep);box-shadow:none;text-align:center;cursor:pointer;padding:24px;animation-delay:${vehicles.length*40}ms" onclick="openAddVehicle()">
     <i data-lucide="plus" style="width:24px;height:24px;color:var(--text3);margin-bottom:8px"></i>
     <p style="font-size:14px;font-weight:600;color:var(--text2)">Ajouter un véhicule</p>
   </div>`;
@@ -1486,6 +1576,10 @@ function renderAccount() {
     <button class="btn btn-secondary" onclick="doLogout()" style="margin-top:8px">
       <i data-lucide="log-out" style="width:18px;height:18px"></i> Déconnexion
     </button>
+
+    <div style="text-align:center;margin-top:24px;padding-bottom:8px">
+      <button onclick="startDeleteAccount()" style="background:none;border:none;font-size:13px;color:var(--text3);cursor:pointer;padding:8px">Supprimer mon compte</button>
+    </div>
   `;
   lucide.createIcons();
 }
@@ -1700,8 +1794,49 @@ async function confirmDeleteExpense(id, btn) {
 }
 
 // ══════════════════════════════════════
-// VEHICLE SHEET — AJOUT / MODIFICATION
+// SUPPRESSION DE COMPTE (RGPD — 3 étapes)
 // ══════════════════════════════════════
+function startDeleteAccount() {
+  document.getElementById('delete-step1').style.display = 'block';
+  document.getElementById('delete-step2').style.display = 'none';
+  document.getElementById('delete-confirm-input').value = '';
+  document.getElementById('delete-overlay').classList.add('show');
+  document.getElementById('delete-sheet').classList.add('show');
+  lucide.createIcons();
+}
+
+function showDeleteStep2() {
+  document.getElementById('delete-step1').style.display = 'none';
+  document.getElementById('delete-step2').style.display = 'block';
+  setTimeout(() => document.getElementById('delete-confirm-input').focus(), 300);
+}
+
+function closeDeleteSheet() {
+  document.getElementById('delete-overlay').classList.remove('show');
+  document.getElementById('delete-sheet').classList.remove('show');
+}
+
+async function confirmDeleteAccount() {
+  const val = document.getElementById('delete-confirm-input').value.trim();
+  if (val !== 'SUPPRIMER') {
+    const input = document.getElementById('delete-confirm-input');
+    input.style.borderColor = 'var(--red)';
+    input.placeholder = 'Saisissez exactement SUPPRIMER';
+    setTimeout(() => { input.style.borderColor = 'var(--sep)'; }, 2000);
+    return;
+  }
+  const uid = currentUser.id;
+  // Suppression en cascade (RLS assure que seul l'user peut supprimer ses données)
+  await sb.from('offer_clicks').delete().eq('user_id', uid);
+  await sb.from('expenses').delete().eq('user_id', uid);
+  await sb.from('vehicles').delete().eq('user_id', uid);
+  await sb.from('users').delete().eq('id', uid);
+  await sb.auth.admin?.deleteUser?.(uid);
+  await sb.auth.signOut();
+  location.reload();
+}
+
+
 function openAddVehicle() {
   editingVehicleId = null;
   document.getElementById('veh-sheet-title').textContent = 'Nouveau véhicule';
@@ -1800,7 +1935,10 @@ async function archiveVehicle() {
 
 function selectVehicle(id) {
   selectedVehicleId = id;
-  renderToday();
+  const activeTab = document.querySelector('.tab-item.active')?.dataset?.tab;
+  if (activeTab === 'expenses') renderExpenses();
+  else if (activeTab === 'savings') renderSavings();
+  else renderToday();
 }
 
 function getUserName() {

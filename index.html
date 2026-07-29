@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#F2F2F7">
-<title>Will — Ton co-pilote financier auto</title>
+<meta name="apple-mobile-web-app-title" content="Will">
+<meta name="theme-color" content="#007AFF">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<title>Will — Ton co-pilote financier auto</title>
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
 /* ══════════════════════════════════════
@@ -1978,6 +1979,14 @@ function formatDate(dateStr) {
 async function doLogout() {
   await sb.auth.signOut();
   location.reload();
+}
+
+// ── Service Worker ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/Will/sw.js')
+      .catch(e => console.warn('SW:', e));
+  });
 }
 
 // ── Start ──

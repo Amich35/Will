@@ -408,7 +408,61 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   <div id="period-options"></div>
 </div>
 
-<!-- Overlay + Bottom Sheet — Ajout/Modif dépense -->
+<!-- Overlay + Bottom Sheet — Ajout/Modif véhicule -->
+<div class="overlay" id="vehicle-overlay" onclick="closeVehicleSheet()"></div>
+<div class="bottom-sheet" id="vehicle-sheet" style="max-height:92vh;overflow-y:auto">
+  <div class="sheet-handle"></div>
+  <h3 id="veh-sheet-title" style="font-size:18px;font-weight:700;margin-bottom:20px;text-align:center">Nouveau véhicule</h3>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <div class="input-group" style="flex:1">
+      <label>Marque</label>
+      <input id="veh-brand" class="input-field" placeholder="ex. Renault" autocapitalize="words">
+    </div>
+    <div class="input-group" style="flex:1">
+      <label>Modèle</label>
+      <input id="veh-model" class="input-field" placeholder="ex. Scénic" autocapitalize="words">
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <div class="input-group" style="flex:1">
+      <label>Année</label>
+      <input id="veh-year" type="number" class="input-field" placeholder="2019" inputmode="numeric">
+    </div>
+    <div class="input-group" style="flex:1">
+      <label>Carburant</label>
+      <select id="veh-fuel" class="input-field">
+        <option value="essence">Essence</option>
+        <option value="diesel">Diesel</option>
+        <option value="électrique">Électrique</option>
+        <option value="hybride">Hybride</option>
+      </select>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <div class="input-group" style="flex:1">
+      <label>Type</label>
+      <select id="veh-type" class="input-field">
+        <option value="citadine">Citadine</option>
+        <option value="berline">Berline</option>
+        <option value="suv">SUV</option>
+        <option value="utilitaire">Utilitaire</option>
+      </select>
+    </div>
+    <div class="input-group" style="flex:1">
+      <label>Kilométrage</label>
+      <input id="veh-km" type="number" class="input-field" placeholder="45000" inputmode="numeric">
+    </div>
+  </div>
+  <div class="input-group" style="margin-bottom:20px">
+    <label>Immatriculation (optionnelle)</label>
+    <input id="veh-plate" class="input-field" placeholder="ex. AB-123-CD" autocapitalize="characters">
+  </div>
+  <button id="veh-save-btn" class="btn btn-primary" onclick="saveVehicle()">Ajouter</button>
+  <div id="veh-archive-wrap" style="display:none;text-align:center;margin-top:16px">
+    <button onclick="archiveVehicle()" style="background:none;border:none;font-size:14px;color:var(--orange);font-weight:600;cursor:pointer;padding:8px">Archiver ce véhicule</button>
+  </div>
+</div>
+
 <div class="overlay" id="expense-overlay" onclick="closeExpenseSheet()"></div>
 <div class="bottom-sheet" id="expense-sheet">
   <div class="sheet-handle"></div>
@@ -1092,10 +1146,25 @@ function renderAccount() {
 
     <div class="card" style="margin-bottom:8px">
       <p style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">Garage</p>
-      ${vehicles.map(v => `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--sep)">
-        <span style="font-size:15px;color:var(--text)">${v.brand} ${v.model}</span>
-        <span style="font-size:13px;color:var(--text3)">${v.year} · ${v.fuel}</span>
-      </div>`).join('')}
+      ${vehicles.map(v => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--sep);cursor:pointer" onclick="openEditVehicle('${v.id}')">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:9px;background:${({'citadine':'#007AFF','suv':'#34C759','berline':'#6E6E73','utilitaire':'#FF9500'}[v.vehicle_type]||'#6E6E73')}18;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i data-lucide="${({'citadine':'car','suv':'truck','berline':'car','utilitaire':'package'}[v.vehicle_type]||'car')}" style="width:16px;height:16px;color:${({'citadine':'#007AFF','suv':'#34C759','berline':'#6E6E73','utilitaire':'#FF9500'}[v.vehicle_type]||'#6E6E73')}"></i>
+            </div>
+            <div>
+              <span style="font-size:15px;font-weight:500;color:var(--text)">${v.brand} ${v.model}</span>
+              <p style="font-size:12px;color:var(--text3);margin-top:1px">${v.year} · ${v.fuel}${v.plate ? ' · ' + v.plate : ''}</p>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--text3)"></i>
+        </div>`).join('')}
+      <div style="padding:12px 0;border-top:1px solid var(--sep);cursor:pointer;display:flex;align-items:center;gap:8px" onclick="openAddVehicle()">
+        <div style="width:32px;height:32px;border-radius:9px;background:rgba(0,122,255,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i data-lucide="plus" style="width:16px;height:16px;color:var(--accent)"></i>
+        </div>
+        <span style="font-size:15px;font-weight:500;color:var(--accent)">Ajouter un véhicule</span>
+      </div>
     </div>
 
     <div class="card" style="margin-bottom:8px">
@@ -1322,8 +1391,106 @@ async function confirmDeleteExpense(id, btn) {
 }
 
 // ══════════════════════════════════════
-// HELPERS
+// VEHICLE SHEET — AJOUT / MODIFICATION
 // ══════════════════════════════════════
+let editingVehicleId = null;
+
+function openAddVehicle() {
+  editingVehicleId = null;
+  document.getElementById('veh-sheet-title').textContent = 'Nouveau véhicule';
+  document.getElementById('veh-save-btn').textContent = 'Ajouter';
+  document.getElementById('veh-archive-wrap').style.display = 'none';
+  document.getElementById('veh-brand').value = '';
+  document.getElementById('veh-model').value = '';
+  document.getElementById('veh-year').value = '';
+  document.getElementById('veh-fuel').value = 'essence';
+  document.getElementById('veh-type').value = 'citadine';
+  document.getElementById('veh-km').value = '';
+  document.getElementById('veh-plate').value = '';
+  document.getElementById('vehicle-overlay').classList.add('show');
+  document.getElementById('vehicle-sheet').classList.add('show');
+  setTimeout(() => document.getElementById('veh-brand').focus(), 300);
+}
+
+function openEditVehicle(id) {
+  const v = vehicles.find(v => v.id === id);
+  if (!v) return;
+  editingVehicleId = id;
+  document.getElementById('veh-sheet-title').textContent = 'Modifier le véhicule';
+  document.getElementById('veh-save-btn').textContent = 'Enregistrer';
+  document.getElementById('veh-archive-wrap').style.display = 'block';
+  document.getElementById('veh-brand').value = v.brand || '';
+  document.getElementById('veh-model').value = v.model || '';
+  document.getElementById('veh-year').value = v.year || '';
+  document.getElementById('veh-fuel').value = v.fuel || 'essence';
+  document.getElementById('veh-type').value = v.vehicle_type || 'citadine';
+  document.getElementById('veh-km').value = v.mileage || '';
+  document.getElementById('veh-plate').value = v.plate || '';
+  document.getElementById('vehicle-overlay').classList.add('show');
+  document.getElementById('vehicle-sheet').classList.add('show');
+}
+
+function closeVehicleSheet() {
+  document.getElementById('vehicle-overlay').classList.remove('show');
+  document.getElementById('vehicle-sheet').classList.remove('show');
+  editingVehicleId = null;
+}
+
+async function saveVehicle() {
+  const brand = document.getElementById('veh-brand').value.trim();
+  const model = document.getElementById('veh-model').value.trim();
+  if (!brand || !model) {
+    document.getElementById('veh-brand').style.borderColor = brand ? 'var(--sep)' : 'var(--red)';
+    document.getElementById('veh-model').style.borderColor = model ? 'var(--sep)' : 'var(--red)';
+    return;
+  }
+  const year    = parseInt(document.getElementById('veh-year').value) || new Date().getFullYear();
+  const fuel    = document.getElementById('veh-fuel').value;
+  const type    = document.getElementById('veh-type').value;
+  const mileage = parseInt(document.getElementById('veh-km').value) || 0;
+  const plate   = document.getElementById('veh-plate').value.trim() || null;
+
+  let error;
+  if (editingVehicleId) {
+    ({ error } = await sb.from('vehicles').update({ brand, model, year, fuel, vehicle_type: type, mileage, plate }).eq('id', editingVehicleId));
+  } else {
+    ({ error } = await sb.from('vehicles').insert({ user_id: currentUser.id, brand, model, year, fuel, vehicle_type: type, mileage, plate, archived: false }));
+  }
+  if (error) { alert('Erreur : ' + error.message); return; }
+
+  closeVehicleSheet();
+  await loadUserData();
+  if (!editingVehicleId) selectedVehicleId = vehicles[vehicles.length - 1]?.id || selectedVehicleId;
+  renderAccount();
+  lucide.createIcons();
+}
+
+async function archiveVehicle() {
+  if (!editingVehicleId) return;
+  const btn = document.querySelector('#veh-archive-wrap button');
+  if (btn.dataset.confirm === '1') {
+    const { error } = await sb.from('vehicles').update({ archived: true }).eq('id', editingVehicleId);
+    if (error) { alert('Erreur : ' + error.message); return; }
+    closeVehicleSheet();
+    await loadUserData();
+    if (selectedVehicleId === editingVehicleId) selectedVehicleId = vehicles[0]?.id || null;
+    renderAccount();
+    lucide.createIcons();
+  } else {
+    btn.dataset.confirm = '1';
+    btn.textContent = 'Confirmer l\'archivage ?';
+    btn.style.color = 'var(--red)';
+    setTimeout(() => {
+      if (btn.dataset.confirm === '1') {
+        btn.dataset.confirm = '0';
+        btn.textContent = 'Archiver ce véhicule';
+        btn.style.color = 'var(--orange)';
+      }
+    }, 3000);
+  }
+}
+
+
 function selectVehicle(id) {
   selectedVehicleId = id;
   renderToday();

@@ -570,6 +570,7 @@ let selectedExpenseCat = 'all';
 let selectedPeriod = '12m';
 let editingExpenseId = null;
 let editingVehicleId = null;
+let authMode = 'signup';
 
 const PERIODS = [
   { key: 'today', label: "Aujourd'hui" },
@@ -609,8 +610,6 @@ async function init() {
 // ══════════════════════════════════════
 // ONBOARDING
 // ══════════════════════════════════════
-let authMode = 'signup'; // 'signup' | 'login'
-
 function showObPage(n) {
   document.querySelectorAll('.onboard-page').forEach(p => p.classList.remove('active'));
   document.getElementById('ob-' + n).classList.add('active');

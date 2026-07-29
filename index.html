@@ -690,7 +690,9 @@ function renderToday() {
   let legend = catEntries.map(([cat, amt]) =>
     `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--sep)">
       <div style="display:flex;align-items:center;gap:8px">
-        <div style="width:8px;height:8px;border-radius:4px;background:${CAT_COLORS[cat]||'#ccc'}"></div>
+        <div style="width:28px;height:28px;border-radius:8px;background:${CAT_COLORS[cat]||'#ccc'}18;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i data-lucide="${CAT_ICONS[cat]||'file-text'}" style="width:14px;height:14px;color:${CAT_COLORS[cat]||'#999'}"></i>
+        </div>
         <span style="font-size:13px;color:var(--text2)">${CAT_LABELS[cat]||cat}</span>
       </div>
       <span style="font-size:13px;font-weight:600;color:var(--text)">${Math.round(amt)} €</span>
@@ -851,6 +853,7 @@ function renderGarage() {
   document.getElementById('garage-total').style.display = vehicles.length > 1 ? 'block' : 'none';
 
   const TYPE_COLORS = { citadine:'#007AFF', suv:'#34C759', berline:'#6E6E73', utilitaire:'#FF9500' };
+  const TYPE_ICONS  = { citadine:'car', suv:'truck', berline:'car', utilitaire:'package' };
   const container = document.getElementById('garage-cards');
 
   if (vehicles.length === 0) {
@@ -871,12 +874,13 @@ function renderGarage() {
     const mExp = vExp.filter(e => { const d = new Date(e.date); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); });
     const mTotal = mExp.reduce((s,e) => s + parseFloat(e.amount), 0);
     const color = TYPE_COLORS[v.vehicle_type] || '#6E6E73';
+    const icon  = TYPE_ICONS[v.vehicle_type]  || 'car';
     const hasEntretien = vExp.some(e => e.category === 'entretien');
 
     html += `<div class="card fade-up" style="cursor:pointer;animation-delay:${i*40}ms;padding:20px" onclick="selectVehicle('${v.id}');switchTab('today')">
       <div style="display:flex;align-items:center;gap:16px">
-        <div style="width:56px;height:56px;border-radius:16px;background:${color}15;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <i data-lucide="car" style="width:28px;height:28px;color:${color}"></i>
+        <div style="width:56px;height:56px;border-radius:16px;background:${color}18;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i data-lucide="${icon}" style="width:28px;height:28px;color:${color}"></i>
         </div>
         <div style="flex:1">
           <p style="font-size:16px;font-weight:600;color:var(--text)">${v.brand} ${v.model}</p>
@@ -936,8 +940,8 @@ function renderExpenses() {
   filtersEl.innerHTML = allCats.map(c => {
     const label = c === 'all' ? 'Toutes' : CAT_LABELS[c];
     const active = selectedExpenseCat === c ? 'active' : '';
-    const dot = c !== 'all' ? `<div class="dot" style="background:${CAT_COLORS[c]}"></div>` : '';
-    return `<button class="chip ${active}" onclick="selectedExpenseCat='${c}';renderExpenses()">${dot}${label}</button>`;
+    const ico = c !== 'all' ? `<i data-lucide="${CAT_ICONS[c]}" style="width:13px;height:13px;color:${active ? '#fff' : CAT_COLORS[c]}"></i>` : '';
+    return `<button class="chip ${active}" onclick="selectedExpenseCat='${c}';renderExpenses()">${ico}${label}</button>`;
   }).join('');
 
   // Filter list
@@ -986,7 +990,9 @@ function renderExpenses() {
         </div>
         <div class="swipe-row-inner">
           <div style="display:flex;align-items:center;gap:12px">
-            <div style="width:8px;height:8px;border-radius:4px;background:${CAT_COLORS[e.category]||'#ccc'};flex-shrink:0"></div>
+            <div style="width:36px;height:36px;border-radius:10px;background:${CAT_COLORS[e.category]||'#ccc'}18;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i data-lucide="${CAT_ICONS[e.category]||'file-text'}" style="width:18px;height:18px;color:${CAT_COLORS[e.category]||'#999'}"></i>
+            </div>
             <div>
               <span style="font-size:14px;font-weight:500;color:var(--text)">${e.label || CAT_LABELS[e.category]}</span>
               <p style="font-size:12px;color:var(--text2);margin-top:2px">${formatDate(e.date)}</p>
@@ -1242,15 +1248,21 @@ function renderExpCats(activeCat) {
   const catsEl = document.getElementById('exp-cats');
   catsEl.innerHTML = Object.entries(CAT_LABELS).map(([k,v]) =>
     `<button class="chip ${k === activeCat ? 'active' : ''}" onclick="selectExpCat('${k}')" data-cat="${k}">
-      <div class="dot" style="background:${CAT_COLORS[k]}"></div>${v}
+      <i data-lucide="${CAT_ICONS[k]}" style="width:13px;height:13px;color:${k === activeCat ? '#fff' : CAT_COLORS[k]}"></i>${v}
     </button>`
   ).join('');
+  lucide.createIcons();
 }
 
 let selectedExpCat = 'carburant';
 function selectExpCat(cat) {
   selectedExpCat = cat;
-  document.querySelectorAll('#exp-cats .chip').forEach(c => c.classList.toggle('active', c.dataset.cat === cat));
+  document.querySelectorAll('#exp-cats .chip').forEach(c => {
+    const isActive = c.dataset.cat === cat;
+    c.classList.toggle('active', isActive);
+    const ico = c.querySelector('i');
+    if (ico) ico.style.color = isActive ? '#fff' : CAT_COLORS[c.dataset.cat] || '#999';
+  });
 }
 
 function closeExpenseSheet() {

@@ -1509,13 +1509,14 @@ function renderSavings() {
   const container = document.getElementById('savings-content');
   const relevant = getRelevantOffers(vehicle);
 
-  // ── Hero contextuel ──
+  // ── Intro contextuelle ──
   const fuelLabel = vehicle ? (vehicle.fuel === 'électrique' ? 'un véhicule électrique' : `un${vehicle.fuel === 'essence' ? 'e' : ''} ${vehicle.fuel}`) : 'votre véhicule';
-  let html = `<div style="padding:4px 4px 16px">
-    <p style="font-size:14px;color:var(--text2);line-height:1.6">Parce que vous roulez avec <strong style="color:var(--text)">${fuelLabel}</strong>.</p>
-    <p style="font-size:15px;color:var(--text);font-weight:600;margin-top:4px">
-      ${relevant.length > 0 ? `${relevant.length} offre${relevant.length > 1 ? 's' : ''} adaptée${relevant.length > 1 ? 's' : ''} à votre véhicule.` : 'Nous cherchons les meilleures offres pour votre profil.'}
-    </p>
+  let html = `<div class="card fade-up" style="background:linear-gradient(135deg,var(--dark1),var(--dark2));margin-bottom:4px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <i data-lucide="sparkles" style="width:16px;height:16px;color:var(--accent)"></i>
+      <span style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.8px">Pourquoi ces recommandations ?</span>
+    </div>
+    <p style="font-size:14px;color:#E5E5EA;line-height:1.55">Ces offres sont sélectionnées parce que vous roulez avec <strong style="color:#fff">${fuelLabel}</strong>. Will analyse votre profil pour vous proposer uniquement ce qui vous correspond.</p>
   </div>`;
 
   // ── Bloc "Pour vous" ──
@@ -1529,7 +1530,7 @@ function renderSavings() {
   // ── Bloc "Explorer" ──
   const CAT_SAVINGS = { assurance:'#007AFF', entretien:'#34C759', carburant:'#FF9500', financement:'#AF52DE', équipement:'#5AC8FA', services:'#8E8E93' };
   const CAT_SAVINGS_ICONS = { assurance:'shield', entretien:'wrench', carburant:'fuel', financement:'landmark', équipement:'settings', services:'headphones' };
-  html += `<div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;padding:16px 4px 10px">Explorer</div>
+  html += `<div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;padding:20px 4px 10px">Explorer par catégorie</div>
   <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">`;
   Object.entries(CAT_SAVINGS).forEach(([cat, color]) => {
     const count = catalogOffers.filter(o => o.category === cat).length;
@@ -1570,22 +1571,30 @@ function renderOfferCard(o, vehicle, delay, showJustif) {
   const CAT_COLORS_S = { assurance:'#007AFF', entretien:'#34C759', carburant:'#FF9500', financement:'#AF52DE', équipement:'#5AC8FA', services:'#8E8E93' };
   const color = CAT_COLORS_S[o.category] || '#8E8E93';
   const initials = o.partner.substring(0,3).toUpperCase();
-  return `<div class="card fade-up" style="cursor:pointer;margin-bottom:0;animation-delay:${delay}ms" onclick="openOfferPanel('${o.id}')">
-    ${showJustif && o.justification_template ? `<div style="font-size:11px;color:var(--accent);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:4px"><i data-lucide="sparkles" style="width:11px;height:11px"></i>${o.justification_template}</div>` : ''}
-    <div style="display:flex;align-items:center;gap:12px">
-      <div style="width:44px;height:44px;border-radius:12px;background:${color}12;border:1px solid ${color}25;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${color};flex-shrink:0">${initials}</div>
+  const justif = showJustif && o.justification_template ? o.justification_template : '';
+  return `<div class="card fade-up" style="cursor:pointer;padding:16px;animation-delay:${delay}ms;border:1px solid var(--sep);box-shadow:none" onclick="openOfferPanel('${o.id}')">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:${justif ? 12 : 0}px">
+      <div style="width:48px;height:48px;border-radius:14px;background:${color}12;border:1.5px solid ${color}22;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:${color};flex-shrink:0;letter-spacing:0.5px">${initials}</div>
       <div style="flex:1;min-width:0">
-        <p style="font-size:16px;font-weight:600;color:var(--text)">${o.partner}</p>
-        <p style="font-size:22px;font-weight:700;color:var(--green);margin-top:2px">${o.discount}</p>
-        <p style="font-size:13px;color:var(--text2);margin-top:6px;line-height:1.4">${o.description.substring(0,80)}${o.description.length > 80 ? '…' : ''}</p>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <p style="font-size:15px;font-weight:600;color:var(--text)">${o.partner}</p>
+          <div style="padding:3px 10px;border-radius:20px;background:rgba(52,199,89,0.1);flex-shrink:0">
+            <span style="font-size:13px;font-weight:700;color:var(--green)">${o.discount}</span>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--text2);margin-top:3px">${o.title}</p>
       </div>
     </div>
-    ${vehicle ? `<div style="display:inline-flex;align-items:center;gap:4px;margin-top:10px;padding:4px 10px;border-radius:8px;background:${color}10">
-      <span style="font-size:11px;font-weight:600;color:${color}">Pour votre ${vehicle.brand} ${vehicle.model}</span>
+    ${justif ? `<div style="display:flex;align-items:flex-start;gap:6px;padding:10px 12px;border-radius:10px;background:rgba(0,122,255,0.06);margin-bottom:12px">
+      <i data-lucide="sparkles" style="width:13px;height:13px;color:var(--accent);flex-shrink:0;margin-top:1px"></i>
+      <p style="font-size:12px;color:var(--accent);line-height:1.45">${justif}</p>
     </div>` : ''}
-    <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--sep)">
-      <span style="font-size:13px;font-weight:600;color:var(--accent)">Voir les détails</span>
-      <i data-lucide="arrow-right" style="width:14px;height:14px;color:var(--accent)"></i>
+    <div style="display:flex;align-items:center;justify-content:space-between;${justif ? '' : 'margin-top:12px;padding-top:12px;border-top:1px solid var(--sep);'}">
+      <p style="font-size:12px;color:var(--text3);max-width:200px;line-height:1.4">${o.description.substring(0,60)}${o.description.length > 60 ? '…' : ''}</p>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+        <span style="font-size:13px;font-weight:600;color:var(--accent)">Voir</span>
+        <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--accent)"></i>
+      </div>
     </div>
   </div>`;
 }

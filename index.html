@@ -243,6 +243,15 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   will-change: transform;
 }
 
+/* ── Garage swipe row ── */
+.garage-swipe-row { position:relative; overflow:hidden; border-radius:16px; margin-bottom:12px; }
+.garage-swipe-inner { transition:transform 0.25s cubic-bezier(0.32,0.72,0,1); will-change:transform; }
+.garage-swipe-actions { position:absolute; right:0; top:0; bottom:0; display:flex; align-items:stretch; border-radius:0 16px 16px 0; overflow:hidden; }
+.garage-swipe-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; width:76px; border:none; cursor:pointer; font-size:11px; font-weight:600; color:#fff; gap:4px; }
+.garage-swipe-btn-edit { background:#636366; }
+.garage-swipe-btn-archive { background:var(--orange); }
+.garage-swipe-btn-delete { background:var(--red); }
+
 /* ── Switch véhicule animé ── */
 .vehicle-slide-out-left  { animation: vSlideOutLeft  150ms cubic-bezier(0.32,0.72,0,1) forwards; }
 .vehicle-slide-out-right { animation: vSlideOutRight 150ms cubic-bezier(0.32,0.72,0,1) forwards; }
@@ -1659,6 +1668,32 @@ const VEHICLE_SVG = {
 };
 
 // ── Builders cartes Garage ──
+function openVehicleToday(vehicleId) {
+  // Ne pas naviguer si la ligne est ouverte (swipe en cours)
+  const inner = event.currentTarget;
+  if (inner && inner._isOpen) {
+    // Refermer le swipe
+    inner.style.transition = 'transform 0.25s cubic-bezier(0.32,0.72,0,1)';
+    inner.style.transform = 'translateX(0)';
+    inner._isOpen = false;
+    return;
+  }
+  // Transition expand : la carte "s'ouvre" vers Aujourd'hui
+  const card = inner ? inner.querySelector('.garage-vehicle-card') : null;
+  if (card) {
+    card.style.transition = 'transform 180ms cubic-bezier(0.32,0.72,0,1), opacity 180ms ease-out';
+    card.style.transform = 'scale(1.03)';
+    card.style.opacity = '0.6';
+  }
+  const newIndex = vehicles.findIndex(v => v.id === vehicleId);
+  _prevVehicleIndex = newIndex;
+  selectedVehicleId = vehicleId;
+  setTimeout(() => {
+    switchTab('today');
+    if (card) { card.style.transform = ''; card.style.opacity = ''; }
+  }, 160);
+}
+
 function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored) {
   const loaLine = (v.acquisition_type === 'loa' || v.acquisition_type === 'credit') && v.monthly_payment
     ? `<p style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px">${parseFloat(v.monthly_payment).toLocaleString('fr-FR')} € / mois</p>`
@@ -1666,14 +1701,7 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
   const yearLine = v.year ? `<span style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.6)">${v.year}</span>` : '';
   const fuelLine = v.fuel ? `<span style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.6)">${v.fuel}</span>` : '';
   const meta = [yearLine, fuelLine].filter(Boolean).join('<span style="color:rgba(255,255,255,0.3);margin:0 4px">·</span>');
-  return `<div class="card fade-up garage-vehicle-card" style="background:linear-gradient(135deg,${color}dd,${color}99);padding:20px;cursor:pointer;animation-delay:${i*40}ms;user-select:none"
-    onclick="selectVehicle('${v.id}')"
-    ontouchstart="this.style.transform='scale(0.97)';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.10)'"
-    ontouchend="this.style.transform='';this.style.boxShadow=''"
-    ontouchcancel="this.style.transform='';this.style.boxShadow=''"
-    onmousedown="this.style.transform='scale(0.97)';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.10)'"
-    onmouseup="this.style.transform='';this.style.boxShadow=''"
-    onmouseleave="this.style.transform='';this.style.boxShadow=''">
+  const cardHtml = `<div class="card fade-up garage-vehicle-card" style="background:linear-gradient(135deg,${color}dd,${color}99);padding:20px;cursor:pointer;animation-delay:${i*40}ms;user-select:none;margin-bottom:0">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div style="flex:1">
         <p style="font-size:19px;font-weight:800;color:#fff;letter-spacing:-0.3px">${v.brand} ${v.model}</p>
@@ -1691,6 +1719,27 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
         <div style="width:7px;height:7px;border-radius:50%;background:${badgeColor};flex-shrink:0"></div>
         <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.9)">${badgeLabel}</span>
       </div>
+    </div>
+  </div>`;
+
+  return `<div class="garage-swipe-row fade-up" style="animation-delay:${i*40}ms">
+    <div class="garage-swipe-actions">
+      <button class="garage-swipe-btn garage-swipe-btn-edit" onclick="openEditVehicle('${v.id}')">
+        <i data-lucide="pencil" style="width:16px;height:16px"></i>Modifier
+      </button>
+      <button class="garage-swipe-btn garage-swipe-btn-archive" onclick="garageArchiveVehicle('${v.id}',this)">
+        <i data-lucide="archive" style="width:16px;height:16px"></i>Archiver
+      </button>
+      <button class="garage-swipe-btn garage-swipe-btn-delete" onclick="garageDeleteVehicle('${v.id}',this)">
+        <i data-lucide="trash-2" style="width:16px;height:16px"></i>Supprimer
+      </button>
+    </div>
+    <div class="garage-swipe-inner"
+      ontouchstart="garageSwipeStart(event,this)"
+      ontouchmove="garageSwipeMove(event,this)"
+      ontouchend="garageSwipeEnd(event,this)"
+      onclick="openVehicleToday('${v.id}')">
+      ${cardHtml}
     </div>
   </div>`;
 }
@@ -1852,6 +1901,9 @@ function renderGarage() {
 
   container.innerHTML = html;
   lucide.createIcons();
+
+  // Fermer les swipes au scroll
+  container.addEventListener('scroll', garageCloseAllSwipes, { passive: true });
 }
 
 function renderMaintenanceSection() {
@@ -2504,6 +2556,91 @@ function initAllPullToRefresh() {
   });
 }
 
+
+// ══════════════════════════════════════
+// SWIPE GARAGE — Modifier / Archiver / Supprimer
+// ══════════════════════════════════════
+const GARAGE_ACTIONS_W = 228; // 3 × 76px
+
+function garageSwipeStart(e, inner) {
+  inner._startX = e.touches[0].clientX;
+  inner._startY = e.touches[0].clientY;
+  inner._baseX  = inner._isOpen ? -GARAGE_ACTIONS_W : 0;
+  inner._lock   = null;
+  inner.style.transition = 'none';
+}
+
+function garageSwipeMove(e, inner) {
+  const dx = e.touches[0].clientX - inner._startX;
+  const dy = e.touches[0].clientY - inner._startY;
+  if (!inner._lock) inner._lock = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+  if (inner._lock === 'y') return;
+  e.preventDefault();
+  const x = Math.max(-GARAGE_ACTIONS_W, Math.min(0, inner._baseX + dx));
+  inner._currentX = x;
+  inner.style.transform = `translateX(${x}px)`;
+}
+
+function garageSwipeEnd(e, inner) {
+  if (inner._lock === 'y') return;
+  // Si swipe rapide vers droite sur une ligne ouverte → fermer sans naviguer
+  const dx = e.changedTouches[0].clientX - inner._startX;
+  inner.style.transition = 'transform 0.25s cubic-bezier(0.32,0.72,0,1)';
+  if ((inner._currentX || 0) < -GARAGE_ACTIONS_W / 3) {
+    inner.style.transform = `translateX(-${GARAGE_ACTIONS_W}px)`;
+    inner._isOpen = true;
+    // Fermer les autres
+    document.querySelectorAll('.garage-swipe-inner').forEach(other => {
+      if (other !== inner && other._isOpen) {
+        other.style.transition = 'transform 0.25s cubic-bezier(0.32,0.72,0,1)';
+        other.style.transform = 'translateX(0)';
+        other._isOpen = false;
+      }
+    });
+  } else {
+    inner.style.transform = 'translateX(0)';
+    inner._isOpen = false;
+  }
+}
+
+function garageCloseAllSwipes() {
+  document.querySelectorAll('.garage-swipe-inner').forEach(inner => {
+    inner.style.transition = 'transform 0.2s ease';
+    inner.style.transform = 'translateX(0)';
+    inner._isOpen = false;
+  });
+}
+
+async function garageArchiveVehicle(id, btn) {
+  if (btn.dataset.confirm === '1') {
+    const { error } = await sb.from('vehicles').update({ archived: true }).eq('id', id);
+    if (error) { alert('Erreur : ' + error.message); return; }
+    await loadUserData();
+    if (selectedVehicleId === id) selectedVehicleId = vehicles[0]?.id || null;
+    renderGarage();
+  } else {
+    btn.dataset.confirm = '1';
+    btn.querySelector('i')?.remove();
+    btn.innerHTML = '<i data-lucide="alert-circle" style="width:16px;height:16px"></i>Confirmer';
+    lucide.createIcons();
+    setTimeout(() => { btn.dataset.confirm = '0'; btn.innerHTML = '<i data-lucide="archive" style="width:16px;height:16px"></i>Archiver'; lucide.createIcons(); }, 3000);
+  }
+}
+
+async function garageDeleteVehicle(id, btn) {
+  if (btn.dataset.confirm === '1') {
+    const { error } = await sb.from('vehicles').delete().eq('id', id);
+    if (error) { alert('Erreur : ' + error.message); return; }
+    await loadUserData();
+    if (selectedVehicleId === id) selectedVehicleId = vehicles[0]?.id || null;
+    renderGarage();
+  } else {
+    btn.dataset.confirm = '1';
+    btn.innerHTML = '<i data-lucide="alert-circle" style="width:16px;height:16px"></i>Confirmer';
+    lucide.createIcons();
+    setTimeout(() => { btn.dataset.confirm = '0'; btn.innerHTML = '<i data-lucide="trash-2" style="width:16px;height:16px"></i>Supprimer'; lucide.createIcons(); }, 3000);
+  }
+}
 
 function initSwipeRows() {
   document.querySelectorAll('.swipe-row').forEach(row => {

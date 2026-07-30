@@ -1728,49 +1728,34 @@ function renderGarage() {
   }
 
   let html = '';
+  const COMPACT_THRESHOLD = 3; // Au-delà de 3 véhicules : mode compact pour les suivants
+
   vehicles.forEach((v, i) => {
-    const vExp = expenses.filter(e => e.vehicle_id === v.id);
-    const mExp = vExp.filter(e => { const d = new Date(e.date); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); });
+    const vExp   = expenses.filter(e => e.vehicle_id === v.id);
+    const mExp   = vExp.filter(e => { const d = new Date(e.date); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); });
     const mTotal = mExp.reduce((s,e) => s + parseFloat(e.amount), 0);
-    const color = TYPE_COLORS[v.vehicle_type] || '#6E6E73';
-    const icon  = TYPE_ICONS[v.vehicle_type]  || 'car';
+    const color  = TYPE_COLORS[v.vehicle_type] || '#6E6E73';
 
-    // État badge
-    const lastAss = vExp.filter(e => e.category === 'assurance').sort((a,b) => new Date(b.date)-new Date(a.date))[0];
+    const lastAss    = vExp.filter(e => e.category === 'assurance').sort((a,b) => new Date(b.date)-new Date(a.date))[0];
     const assExpired = lastAss && Math.floor((now - new Date(lastAss.date)) / 86400000) > 395;
-    const lastEnt = vExp.filter(e => e.category === 'entretien').sort((a,b) => new Date(b.date)-new Date(a.date))[0];
-    const entSoon = lastEnt && Math.floor((now - new Date(lastEnt.date)) / 86400000) > 270;
-
-    let badgeColor, badgeText;
-    if (assExpired) {
-      badgeColor = 'var(--red)'; badgeText = 'Assurance à vérifier';
-    } else if (entSoon) {
-      badgeColor = 'var(--orange)'; badgeText = 'Révision bientôt à prévoir';
-    } else {
-      badgeColor = 'var(--green)'; badgeText = 'Tout est à jour · Aucune action requise';
-    }
-
-    const svgTemplate = VEHICLE_SVG[v.vehicle_type] || VEHICLE_SVG['default'];
-    const svgColored = svgTemplate.replace(/FILLCOLOR/g, color);
-    const badgeIcon = assExpired ? 'alert-circle' : entSoon ? 'clock' : 'check-circle';
+    const lastEnt    = vExp.filter(e => e.category === 'entretien').sort((a,b) => new Date(b.date)-new Date(a.date))[0];
+    const entSoon    = lastEnt && Math.floor((now - new Date(lastEnt.date)) / 86400000) > 270;
+    const badgeColor = assExpired ? 'var(--red)' : entSoon ? 'var(--orange)' : 'var(--green)';
     const badgeLabel = assExpired ? 'Assurance à vérifier' : entSoon ? 'Révision bientôt' : 'À jour';
-    html += `<div class="card fade-up" style="cursor:pointer;animation-delay:${i*60}ms;padding:0;overflow:hidden;active:transform:scale(0.98)" onclick="selectVehicle('${v.id}');switchTab('today')">
-      <div style="background:${color}10;padding:20px 20px 12px;position:relative">
-        <div style="width:100%;height:64px;display:flex;align-items:center;justify-content:center;margin-bottom:4px;padding:0 24px">
-          <div style="width:140px;height:56px;display:flex;align-items:center;justify-content:center">${svgColored}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
-          <div style="width:8px;height:8px;border-radius:4px;background:${badgeColor};flex-shrink:0"></div>
-          <span style="font-size:11px;font-weight:500;color:${badgeColor}">${badgeLabel}</span>
-        </div>
-      </div>
-      <div style="padding:14px 20px 16px">
-        <p style="font-size:17px;font-weight:700;color:var(--text)">${v.brand} ${v.model}</p>
-        ${v.plate ? `<p style="font-size:12px;color:var(--text3);margin-top:2px;letter-spacing:0.5px">${v.plate}</p>` : ''}
-        <p style="font-size:26px;font-weight:800;color:var(--text);margin-top:10px;letter-spacing:-0.5px">${Math.round(mTotal)} €<span style="font-size:13px;font-weight:400;color:var(--text3);margin-left:4px">ce mois</span></p>
-        ${v.monthly_payment ? '<p style="font-size:12px;color:var(--text3);margin-top:2px">+ ' + parseFloat(v.monthly_payment).toLocaleString('fr-FR') + ' €/mois · ' + (v.acquisition_type || 'LOA').toUpperCase() + '</p>' : ''}
-      </div>
-    </div>`;
+
+    if (i < COMPACT_THRESHOLD) {
+      const svgTemplate = VEHICLE_SVG[v.vehicle_type] || VEHICLE_SVG['default'];
+      const svgColored  = svgTemplate.replace(/FILLCOLOR/g, color);
+      html += makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored);
+    } else {
+      if (i === COMPACT_THRESHOLD) {
+        html += '<p style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;padding:4px 4px 8px">Autres véhicules</p>'
+          + '<div class="card" style="padding:0 16px">';
+      }
+      const isLast = (i === vehicles.length - 1);
+      html += makeCompactRow(v, mTotal, color, badgeColor, badgeLabel, isLast);
+      if (isLast) html += '</div>';
+    }
   });
 
   // Carte ajouter — utilise le bottom sheet (pas l'onboarding)

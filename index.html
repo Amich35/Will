@@ -246,41 +246,66 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 
   <!-- Page 1 — La promesse -->
   <div id="ob-1" class="onboard-page active">
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px">
-      <div id="ob-anim" style="height:160px;display:flex;align-items:center;justify-content:center">
-        <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
-          <rect x="20" y="45" width="80" height="35" rx="8" stroke="#1C1C1E" stroke-width="2.5" fill="none"/>
-          <circle cx="38" cy="80" r="8" stroke="#1C1C1E" stroke-width="2.5" fill="none"/>
-          <circle cx="82" cy="80" r="8" stroke="#1C1C1E" stroke-width="2.5" fill="none"/>
-          <path d="M30 45 L40 28 L80 28 L95 45" stroke="#1C1C1E" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-        </svg>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:20px;padding:0 8px">
+      <!-- Animation convergence -->
+      <div id="ob-anim" style="height:180px;width:100%;position:relative;display:flex;align-items:center;justify-content:center">
+        <style>
+          @keyframes floatIn0 { 0%{opacity:0;transform:translate(-80px,-40px) scale(0.7)} 60%{opacity:1;transform:translate(-28px,-18px) scale(1)} 100%{opacity:1;transform:translate(-28px,-18px) scale(1)} }
+          @keyframes floatIn1 { 0%{opacity:0;transform:translate(70px,-50px) scale(0.7)} 60%{opacity:1;transform:translate(24px,-22px) scale(1)} 100%{opacity:1;transform:translate(24px,-22px) scale(1)} }
+          @keyframes floatIn2 { 0%{opacity:0;transform:translate(-60px,50px) scale(0.7)} 60%{opacity:1;transform:translate(-26px,20px) scale(1)} 100%{opacity:1;transform:translate(-26px,20px) scale(1)} }
+          @keyframes floatIn3 { 0%{opacity:0;transform:translate(65px,45px) scale(0.7)} 60%{opacity:1;transform:translate(26px,22px) scale(1)} 100%{opacity:1;transform:translate(26px,22px) scale(1)} }
+          @keyframes floatIn4 { 0%{opacity:0;transform:translate(0px,-70px) scale(0.7)} 60%{opacity:1;transform:translate(0,-24px) scale(1)} 100%{opacity:1;transform:translate(0,-24px) scale(1)} }
+          @keyframes heroReveal { 0%,55%{opacity:0;transform:scale(0.6)} 80%{opacity:1;transform:scale(1.05)} 100%{opacity:1;transform:scale(1)} }
+          .ob-chip { position:absolute;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;opacity:0; }
+          .ob-chip-0 { background:rgba(0,122,255,0.12);color:#007AFF;animation:floatIn0 0.7s ease-out 0.2s forwards; }
+          .ob-chip-1 { background:rgba(255,149,0,0.12);color:#FF9500;animation:floatIn1 0.7s ease-out 0.35s forwards; }
+          .ob-chip-2 { background:rgba(52,199,89,0.12);color:#34C759;animation:floatIn2 0.7s ease-out 0.5s forwards; }
+          .ob-chip-3 { background:rgba(175,82,222,0.12);color:#AF52DE;animation:floatIn3 0.7s ease-out 0.65s forwards; }
+          .ob-chip-4 { background:rgba(90,200,250,0.12);color:#5AC8FA;animation:floatIn4 0.7s ease-out 0.8s forwards; }
+          .ob-hero { animation:heroReveal 0.6s ease-out 1.1s both; }
+        </style>
+        <span class="ob-chip ob-chip-0">Carburant</span>
+        <span class="ob-chip ob-chip-1">Assurance</span>
+        <span class="ob-chip ob-chip-2">Entretien</span>
+        <span class="ob-chip ob-chip-3">Financement</span>
+        <span class="ob-chip ob-chip-4">Péage</span>
+        <div class="ob-hero" style="width:72px;height:72px;border-radius:22px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(0,122,255,0.3)">
+          <i data-lucide="car" style="width:32px;height:32px;color:#fff"></i>
+        </div>
       </div>
-      <h1 style="font-size:26px;font-weight:700;letter-spacing:-0.5px;color:var(--text);line-height:1.3;max-width:300px">
+      <h1 style="font-size:28px;font-weight:800;letter-spacing:-0.8px;color:var(--text);line-height:1.25;max-width:300px">
         Comprenez enfin ce que votre voiture vous coûte.
       </h1>
-      <p style="font-size:15px;color:var(--text2);line-height:1.5;max-width:280px">
-        Un seul endroit pour suivre, comprendre et réduire toutes vos dépenses auto.
+      <p style="font-size:15px;color:var(--text2);line-height:1.55;max-width:280px">
+        Will réunit toutes vos dépenses auto en un seul endroit — pour voir, comprendre et réduire.
       </p>
-      <p style="font-size:13px;color:var(--text3)">Gratuit · Multi-véhicules</p>
+      <div style="display:flex;gap:16px;align-items:center">
+        <span style="font-size:12px;color:var(--text3);display:flex;align-items:center;gap:4px"><i data-lucide="check-circle" style="width:13px;height:13px;color:var(--green)"></i>Gratuit</span>
+        <span style="font-size:12px;color:var(--text3);display:flex;align-items:center;gap:4px"><i data-lucide="check-circle" style="width:13px;height:13px;color:var(--green)"></i>Multi-véhicules</span>
+        <span style="font-size:12px;color:var(--text3);display:flex;align-items:center;gap:4px"><i data-lucide="check-circle" style="width:13px;height:13px;color:var(--green)"></i>Sans pub</span>
+      </div>
     </div>
     <div style="width:100%;display:flex;flex-direction:column;gap:12px;padding-bottom:40px">
-      <button class="btn btn-primary" onclick="showObPage(2)">Commencer</button>
+      <button class="btn btn-primary" onclick="showObPage(2)" style="font-size:17px;height:52px">Commencer</button>
       <button class="btn btn-secondary" onclick="showObPage(2);setAuthMode('login')" style="font-size:14px">J'ai déjà un compte</button>
     </div>
   </div>
 
   <!-- Page 2 — Inscription / Connexion -->
   <div id="ob-2" class="onboard-page">
-    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;width:100%;max-width:360px;margin:0 auto">
-      <h2 id="auth-title" style="font-size:24px;font-weight:700;margin-bottom:8px;text-align:center">Créer un compte</h2>
-
-      <!-- Toggle mode -->
-      <div style="display:flex;align-items:center;justify-content:center;gap:4px;margin-bottom:28px">
-        <span style="font-size:14px;color:var(--text2)">Déjà un compte ?</span>
-        <button id="auth-toggle-btn" onclick="toggleAuthMode()" style="background:none;border:none;font-size:14px;font-weight:600;color:var(--accent);cursor:pointer;padding:4px">Se connecter</button>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;width:100%;max-width:360px;margin:0 auto;padding:0 4px">
+      <div style="text-align:center;margin-bottom:32px">
+        <div style="width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 6px 20px rgba(0,122,255,0.25)">
+          <i data-lucide="car" style="width:26px;height:26px;color:#fff"></i>
+        </div>
+        <h2 id="auth-title" style="font-size:26px;font-weight:800;letter-spacing:-0.5px;margin-bottom:6px">Créer un compte</h2>
+        <div style="display:flex;align-items:center;justify-content:center;gap:4px">
+          <span style="font-size:14px;color:var(--text2)">Déjà un compte ?</span>
+          <button id="auth-toggle-btn" onclick="toggleAuthMode()" style="background:none;border:none;font-size:14px;font-weight:600;color:var(--accent);cursor:pointer;padding:4px">Se connecter</button>
+        </div>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:column;gap:14px">
         <div class="input-group">
           <label>Adresse email</label>
           <input id="auth-email" type="email" class="input-field" placeholder="vous@exemple.com" autocomplete="email" inputmode="email">
@@ -290,7 +315,8 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
           <input id="auth-pass" type="password" class="input-field" placeholder="6 caractères minimum" autocomplete="current-password">
         </div>
         <div id="auth-error" style="display:none;font-size:13px;color:var(--red);text-align:center;padding:4px 0"></div>
-        <button id="auth-submit-btn" class="btn btn-primary" onclick="doAuth()" style="margin-top:8px">Créer mon compte</button>
+        <button id="auth-submit-btn" class="btn btn-primary" onclick="doAuth()" style="margin-top:4px;height:52px;font-size:16px">Créer mon compte</button>
+        <p style="font-size:11px;color:var(--text3);text-align:center;line-height:1.5">En continuant, vous acceptez nos CGU et notre politique de confidentialité.</p>
       </div>
     </div>
   </div>
@@ -298,8 +324,10 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   <!-- Page 3 — Ajout du premier véhicule -->
   <div id="ob-3" class="onboard-page">
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;width:100%;max-width:360px;margin:0 auto">
-      <h2 style="font-size:24px;font-weight:700;margin-bottom:8px;text-align:center">Votre véhicule</h2>
-      <p style="font-size:14px;color:var(--text2);text-align:center;margin-bottom:28px">Ajoutez votre premier véhicule pour commencer.</p>
+      <div style="text-align:center;margin-bottom:24px">
+        <h2 style="font-size:26px;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px">Votre premier véhicule</h2>
+        <p style="font-size:14px;color:var(--text2);line-height:1.5">30 secondes pour commencer votre suivi.</p>
+      </div>
 
       <div id="vehicle-step1" style="display:flex;flex-direction:column;gap:14px">
         <div class="input-group">
@@ -341,7 +369,7 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
             <option value="utilitaire">Utilitaire</option>
           </select>
         </div>
-        <button class="btn btn-primary" onclick="saveFirstVehicle()" style="margin-top:8px">C'est parti</button>
+        <button class="btn btn-primary" id="ob-save-btn" onclick="saveFirstVehicle()" style="margin-top:8px;height:52px;font-size:16px">Créer mon Will</button>
       </div>
     </div>
   </div>

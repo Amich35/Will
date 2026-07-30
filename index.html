@@ -1739,56 +1739,99 @@ function renderAccount() {
   const name = getUserName();
   const container = document.getElementById('account-content');
   const totalExp = expenses.length;
+  const email = currentUser?.email || '';
+  const createdAt = currentUser?.created_at ? new Date(currentUser.created_at).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' }) : '';
+  const TYPE_COLORS = { citadine:'#007AFF', suv:'#34C759', berline:'#6E6E73', utilitaire:'#FF9500' };
+  const TYPE_ICONS  = { citadine:'car', suv:'truck', berline:'car', utilitaire:'package' };
+
+  // Helper ligne réglage iOS
+  const row = (icon, iconColor, label, value, action, isLast) =>
+    `<div style="display:flex;align-items:center;gap:12px;padding:13px 0;${!isLast ? 'border-bottom:1px solid var(--sep)' : ''};${action ? 'cursor:pointer' : ''}" ${action ? `onclick="${action}"` : ''}>
+      <div style="width:30px;height:30px;border-radius:8px;background:${iconColor};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i data-lucide="${icon}" style="width:16px;height:16px;color:#fff"></i>
+      </div>
+      <span style="flex:1;font-size:15px;color:var(--text)">${label}</span>
+      ${value ? `<span style="font-size:14px;color:var(--text2);margin-right:4px">${value}</span>` : ''}
+      ${action ? `<i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--text3);flex-shrink:0"></i>` : ''}
+    </div>`;
 
   container.innerHTML = `
-    <div style="text-align:center;padding:12px 0 24px">
-      <div style="width:60px;height:60px;border-radius:30px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:600;margin:0 auto 12px">${name.charAt(0).toUpperCase()}</div>
+    <!-- Avatar + nom -->
+    <div style="text-align:center;padding:16px 0 28px">
+      <div style="width:72px;height:72px;border-radius:36px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:700;margin:0 auto 14px">${name.charAt(0).toUpperCase()}</div>
       <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px">
-        <p id="account-name-display" style="font-size:18px;font-weight:600;color:var(--text)">${name}</p>
+        <p id="account-name-display" style="font-size:20px;font-weight:700;color:var(--text)">${name}</p>
         <button onclick="startEditName()" style="background:none;border:none;padding:4px;cursor:pointer;display:flex;align-items:center">
           <i data-lucide="pencil" style="width:14px;height:14px;color:var(--text3)"></i>
         </button>
       </div>
-      <p style="font-size:13px;color:var(--text2)">${vehicles.length} véhicule${vehicles.length > 1 ? 's' : ''} · ${totalExp} dépense${totalExp > 1 ? 's' : ''}</p>
+      <p style="font-size:13px;color:var(--text2)">${email}</p>
     </div>
 
-    <div class="card" style="margin-bottom:8px">
-      <p style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">Garage</p>
-      ${vehicles.map(v => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--sep);cursor:pointer" onclick="openEditVehicle('${v.id}')">
-          <div style="display:flex;align-items:center;gap:10px">
-            <div style="width:32px;height:32px;border-radius:9px;background:${({'citadine':'#007AFF','suv':'#34C759','berline':'#6E6E73','utilitaire':'#FF9500'}[v.vehicle_type]||'#6E6E73')}18;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <i data-lucide="${({'citadine':'car','suv':'truck','berline':'car','utilitaire':'package'}[v.vehicle_type]||'car')}" style="width:16px;height:16px;color:${({'citadine':'#007AFF','suv':'#34C759','berline':'#6E6E73','utilitaire':'#FF9500'}[v.vehicle_type]||'#6E6E73')}"></i>
-            </div>
-            <div>
-              <span style="font-size:15px;font-weight:500;color:var(--text)">${v.brand} ${v.model}</span>
-              <p style="font-size:12px;color:var(--text3);margin-top:1px">${v.year} · ${v.fuel}${v.plate ? ' · ' + v.plate : ''}</p>
-            </div>
-          </div>
-          <i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--text3)"></i>
-        </div>`).join('')}
-      <div style="padding:12px 0;border-top:1px solid var(--sep);cursor:pointer;display:flex;align-items:center;gap:8px" onclick="openAddVehicle()">
-        <div style="width:32px;height:32px;border-radius:9px;background:rgba(0,122,255,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <i data-lucide="plus" style="width:16px;height:16px;color:var(--accent)"></i>
+    <!-- Stats 3 colonnes -->
+    <div class="card fade-up" style="margin-bottom:16px;padding:16px">
+      <div style="display:flex;text-align:center;gap:0">
+        <div style="flex:1;padding:0 8px;border-right:1px solid var(--sep)">
+          <p style="font-size:22px;font-weight:800;color:var(--text)">${vehicles.length}</p>
+          <p style="font-size:11px;color:var(--text2);margin-top:2px">Véhicule${vehicles.length > 1 ? 's' : ''}</p>
         </div>
-        <span style="font-size:15px;font-weight:500;color:var(--accent)">Ajouter un véhicule</span>
+        <div style="flex:1;padding:0 8px;border-right:1px solid var(--sep)">
+          <p style="font-size:22px;font-weight:800;color:var(--text)">${totalExp}</p>
+          <p style="font-size:11px;color:var(--text2);margin-top:2px">Dépense${totalExp > 1 ? 's' : ''}</p>
+        </div>
+        <div style="flex:1;padding:0 8px">
+          <p style="font-size:22px;font-weight:800;color:var(--text)">${createdAt ? createdAt.split(' ')[2] : '—'}</p>
+          <p style="font-size:11px;color:var(--text2);margin-top:2px">Membre depuis</p>
+        </div>
       </div>
     </div>
 
-    <div class="card" style="margin-bottom:8px">
-      <p style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">Informations</p>
-      <div style="padding:10px 0;border-top:1px solid var(--sep)"><span style="font-size:15px;color:var(--text)">Politique de confidentialité</span></div>
-      <div style="padding:10px 0;border-top:1px solid var(--sep)"><span style="font-size:15px;color:var(--text)">CGU</span></div>
-      <div style="padding:10px 0;border-top:1px solid var(--sep)"><span style="font-size:15px;color:var(--text)">Nous contacter</span></div>
+    <!-- Section Garage -->
+    <p style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;padding:0 4px;margin-bottom:8px">Garage</p>
+    <div class="card fade-up" style="margin-bottom:16px;padding:0 16px">
+      ${vehicles.map((v, i) => row(
+        TYPE_ICONS[v.vehicle_type] || 'car',
+        TYPE_COLORS[v.vehicle_type] || '#6E6E73',
+        v.brand + ' ' + v.model,
+        v.year + (v.plate ? ' · ' + v.plate : ''),
+        `openEditVehicle('${v.id}')`,
+        false
+      )).join('')}
+      <div style="display:flex;align-items:center;gap:12px;padding:13px 0;cursor:pointer" onclick="openAddVehicle()">
+        <div style="width:30px;height:30px;border-radius:8px;background:rgba(0,122,255,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i data-lucide="plus" style="width:16px;height:16px;color:var(--accent)"></i>
+        </div>
+        <span style="flex:1;font-size:15px;color:var(--accent);font-weight:500">Ajouter un véhicule</span>
+      </div>
     </div>
 
-    <button class="btn btn-secondary" onclick="doLogout()" style="margin-top:8px">
-      <i data-lucide="log-out" style="width:18px;height:18px"></i> Déconnexion
-    </button>
-
-    <div style="text-align:center;margin-top:24px;padding-bottom:8px">
-      <button onclick="startDeleteAccount()" style="background:none;border:none;font-size:13px;color:var(--text3);cursor:pointer;padding:8px">Supprimer mon compte</button>
+    <!-- Section Informations -->
+    <p style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;padding:0 4px;margin-bottom:8px">Informations</p>
+    <div class="card fade-up" style="margin-bottom:16px;padding:0 16px">
+      ${row('file-text', '#8E8E93', 'Politique de confidentialité', '', 'void(0)', false)}
+      ${row('scroll', '#8E8E93', 'Conditions générales', '', 'void(0)', false)}
+      ${row('mail', '#5AC8FA', 'Nous contacter', '', 'void(0)', true)}
     </div>
+
+    <!-- Section Actions -->
+    <p style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;padding:0 4px;margin-bottom:8px">Compte</p>
+    <div class="card fade-up" style="margin-bottom:8px;padding:0 16px">
+      <div style="display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--sep);cursor:pointer" onclick="doLogout()">
+        <div style="width:30px;height:30px;border-radius:8px;background:rgba(255,59,48,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i data-lucide="log-out" style="width:16px;height:16px;color:var(--red)"></i>
+        </div>
+        <span style="flex:1;font-size:15px;color:var(--red)">Se déconnecter</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:13px 0;cursor:pointer" onclick="startDeleteAccount()">
+        <div style="width:30px;height:30px;border-radius:8px;background:rgba(255,59,48,0.06);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i data-lucide="trash-2" style="width:16px;height:16px;color:var(--red)"></i>
+        </div>
+        <span style="flex:1;font-size:15px;color:var(--red)">Supprimer mon compte</span>
+        <i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--text3);flex-shrink:0"></i>
+      </div>
+    </div>
+
+    <p style="text-align:center;font-size:11px;color:var(--text3);padding:16px 0 8px">Will · Version 1.0${createdAt ? ' · Membre depuis ' + createdAt : ''}</p>
   `;
   lucide.createIcons();
 }

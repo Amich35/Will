@@ -237,6 +237,12 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 .ptr-indicator.loading svg { opacity:1; animation:ptr-spin 0.8s linear infinite; }
 @keyframes ptr-spin { to { transform:rotate(360deg); } }
 
+/* ── Garage card — élévation au press ── */
+.garage-vehicle-card {
+  transition: transform 120ms cubic-bezier(0.32,0.72,0,1), box-shadow 120ms ease-out;
+  will-change: transform;
+}
+
 /* ── Switch véhicule animé ── */
 .vehicle-slide-out-left  { animation: vSlideOutLeft  150ms cubic-bezier(0.32,0.72,0,1) forwards; }
 .vehicle-slide-out-right { animation: vSlideOutRight 150ms cubic-bezier(0.32,0.72,0,1) forwards; }
@@ -1645,6 +1651,66 @@ const VEHICLE_SVG = {
   'utilitaire': `<svg viewBox="0 0 80 44" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 32 Q6 36 12 36 L68 36 Q74 36 74 32 L74 16 Q74 10 68 10 L20 10 Q10 10 8 18 L6 24 Z" fill="FILLCOLOR" fill-opacity="0.9"/><rect x="52" y="10" width="22" height="22" rx="2" fill="FILLCOLOR" fill-opacity="0.6"/><circle cx="20" cy="36" r="7" fill="FILLCOLOR" fill-opacity="0.5"/><circle cx="20" cy="36" r="3.5" fill="white" fill-opacity="0.6"/><circle cx="60" cy="36" r="7" fill="FILLCOLOR" fill-opacity="0.5"/><circle cx="60" cy="36" r="3.5" fill="white" fill-opacity="0.6"/></svg>`,
   'default': `<svg viewBox="0 0 80 44" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 30 Q7 34 13 34 L67 34 Q73 34 73 30 L73 25 L67 17 Q62 11 52 11 L28 11 Q18 11 13 17 L7 25 Z" fill="FILLCOLOR" fill-opacity="0.9"/><path d="M24 11 Q27 5 34 5 L46 5 Q53 5 56 11" fill="FILLCOLOR" fill-opacity="0.7"/><circle cx="22" cy="34" r="6" fill="FILLCOLOR" fill-opacity="0.5"/><circle cx="22" cy="34" r="3" fill="white" fill-opacity="0.6"/><circle cx="58" cy="34" r="6" fill="FILLCOLOR" fill-opacity="0.5"/><circle cx="58" cy="34" r="3" fill="white" fill-opacity="0.6"/></svg>`
 };
+
+// ── Builders cartes Garage ──
+function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored) {
+  const loaLine = (v.acquisition_type === 'loa' || v.acquisition_type === 'credit') && v.monthly_payment
+    ? `<p style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px">${parseFloat(v.monthly_payment).toLocaleString('fr-FR')} € / mois</p>`
+    : '';
+  const yearLine = v.year ? `<span style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.6)">${v.year}</span>` : '';
+  const fuelLine = v.fuel ? `<span style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.6)">${v.fuel}</span>` : '';
+  const meta = [yearLine, fuelLine].filter(Boolean).join('<span style="color:rgba(255,255,255,0.3);margin:0 4px">·</span>');
+  return `<div class="card fade-up garage-vehicle-card" style="background:linear-gradient(135deg,${color}dd,${color}99);padding:20px;cursor:pointer;animation-delay:${i*40}ms;user-select:none"
+    onclick="selectVehicle('${v.id}')"
+    ontouchstart="this.style.transform='scale(0.97)';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.10)'"
+    ontouchend="this.style.transform='';this.style.boxShadow=''"
+    ontouchcancel="this.style.transform='';this.style.boxShadow=''"
+    onmousedown="this.style.transform='scale(0.97)';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.10)'"
+    onmouseup="this.style.transform='';this.style.boxShadow=''"
+    onmouseleave="this.style.transform='';this.style.boxShadow=''">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="flex:1">
+        <p style="font-size:19px;font-weight:800;color:#fff;letter-spacing:-0.3px">${v.brand} ${v.model}</p>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:2px">${meta}</div>
+        ${loaLine}
+      </div>
+      <div style="width:80px;height:44px;flex-shrink:0;opacity:0.85">${svgColored}</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:16px">
+      <div>
+        <p style="font-size:24px;font-weight:800;color:#fff;letter-spacing:-0.5px">${Math.round(mTotal).toLocaleString('fr-FR')} €</p>
+        <p style="font-size:12px;color:rgba(255,255,255,0.65);margin-top:1px">ce mois</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;background:rgba(0,0,0,0.18);border-radius:10px;padding:5px 9px">
+        <div style="width:7px;height:7px;border-radius:50%;background:${badgeColor};flex-shrink:0"></div>
+        <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.9)">${badgeLabel}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function makeCompactRow(v, mTotal, color, badgeColor, badgeLabel, isLast) {
+  return `<div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:${isLast ? 'none' : '1px solid var(--sep)'};cursor:pointer;transition:opacity 150ms ease-out"
+    onclick="selectVehicle('${v.id}')"
+    ontouchstart="this.style.opacity='0.6'" ontouchend="this.style.opacity=''"
+    ontouchcancel="this.style.opacity=''" onmousedown="this.style.opacity='0.6'" onmouseup="this.style.opacity=''" onmouseleave="this.style.opacity=''">
+    <div style="width:36px;height:36px;border-radius:10px;background:${color}22;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <div style="width:8px;height:8px;border-radius:50%;background:${color}"></div>
+    </div>
+    <div style="flex:1">
+      <p style="font-size:15px;font-weight:600;color:var(--text)">${v.brand} ${v.model}</p>
+      <p style="font-size:12px;color:var(--text3);margin-top:1px">${v.year || ''}</p>
+    </div>
+    <div style="text-align:right">
+      <p style="font-size:15px;font-weight:700;color:var(--text)">${Math.round(mTotal).toLocaleString('fr-FR')} €</p>
+      <div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;margin-top:2px">
+        <div style="width:6px;height:6px;border-radius:50%;background:${badgeColor}"></div>
+        <span style="font-size:11px;color:var(--text3)">${badgeLabel}</span>
+      </div>
+    </div>
+    <i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--text3);flex-shrink:0"></i>
+  </div>`;
+}
 
 function renderGarage() {
   const name = getUserName();

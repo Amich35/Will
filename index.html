@@ -860,7 +860,10 @@ function renderToday() {
   let html = '';
 
   // ① HERO
+  const heroVehicle = vehicles.find(v => v.id === selectedVehicleId);
+  const heroVehicleName = heroVehicle ? heroVehicle.brand + ' ' + heroVehicle.model : '';
   html += `<div class="card fade-up" style="text-align:center;padding:28px 20px">
+    <p style="font-size:13px;font-weight:500;color:var(--text2);margin-bottom:8px">${heroVehicleName}</p>
     <p id="hero-amount" style="font-size:44px;font-weight:800;letter-spacing:-1.5px;color:var(--text)" data-target="${Math.round(annualTotal)}">0 €</p>
     <p style="font-size:13px;color:var(--text2);margin-top:8px">Coût total · 12 derniers mois</p>
   </div>`;
@@ -892,7 +895,7 @@ function renderToday() {
   html += `<div class="card fade-up" style="animation-delay:60ms">
     <div style="display:flex;align-items:center;gap:20px">
       <div class="donut-container" style="width:${donutSize}px;height:${donutSize}px">
-        <svg width="${donutSize}" height="${donutSize}" style="transform:rotate(-90deg)">${arcs}</svg>
+        <svg width="${donutSize}" height="${donutSize}" style="transform:rotate(-90deg);overflow:visible" id="donut-svg-today">${arcs}</svg>
         <div class="donut-center">
           <span style="font-size:24px;font-weight:700;color:var(--text)">${Math.round(monthTotal)} €</span>
           <span style="font-size:11px;color:var(--text2);margin-top:2px">ce mois-ci</span>
@@ -918,16 +921,22 @@ function renderToday() {
   </div>`;
 
   // ④ ENTRETIEN
-  const lastEntretien = vExpenses.find(e => e.category === 'entretien');
-  const kmSince = lastEntretien ? vehicle.mileage : 0;
-  html += `<div class="card fade-up" style="border:1px solid rgba(52,199,89,0.2);padding:16px;animation-delay:180ms">
+  const lastEntretien = vExpenses.filter(e => e.category === 'entretien').sort((a,b) => new Date(b.date) - new Date(a.date))[0];
+  const entretienMois = lastEntretien ? Math.round((Date.now() - new Date(lastEntretien.date)) / (1000*60*60*24*30)) : null;
+  const entretienText = lastEntretien
+    ? (entretienMois >= 11 ? 'Révision à prévoir · Dernier entretien il y a ' + entretienMois + ' mois' : 'Prochain entretien · Estimé dans ' + (12 - entretienMois) + ' mois')
+    : 'Ajoutez vos dépenses entretien pour un suivi précis';
+  const entretienColor = lastEntretien && entretienMois >= 11 ? 'var(--orange)' : 'var(--green)';
+  const entretienBorder = lastEntretien && entretienMois >= 11 ? 'rgba(255,149,0,0.2)' : 'rgba(52,199,89,0.2)';
+  const entretienBg = lastEntretien && entretienMois >= 11 ? 'rgba(255,149,0,0.08)' : 'rgba(52,199,89,0.08)';
+  html += `<div class="card fade-up" style="border:1px solid ${entretienBorder};padding:16px;animation-delay:180ms">
     <div style="display:flex;align-items:center;gap:12px">
-      <div style="width:40px;height:40px;border-radius:12px;background:rgba(52,199,89,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <i data-lucide="wrench" style="width:20px;height:20px;color:var(--green)"></i>
+      <div style="width:40px;height:40px;border-radius:12px;background:${entretienBg};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i data-lucide="wrench" style="width:20px;height:20px;color:${entretienColor}"></i>
       </div>
       <div style="flex:1">
         <span style="font-size:14px;font-weight:600;color:var(--text)">Entretien</span>
-        <p style="font-size:13px;color:var(--text2);margin-top:3px">${lastEntretien ? 'Prochaine étape · Révision estimée' : 'Tout est à jour · Aucune action requise'}</p>
+        <p style="font-size:13px;color:var(--text2);margin-top:3px">${entretienText}</p>
       </div>
     </div>
   </div>`;
@@ -936,9 +945,10 @@ function renderToday() {
   const maxBar = Math.max(...monthlyData.map(m => m.total), 1);
   const bars = monthlyData.map((m, i) => {
     const isLast = i === monthlyData.length - 1;
-    const h = (m.total / maxBar) * 64;
+    const h = Math.max((m.total / maxBar) * 64, m.total > 0 ? 4 : 0);
+    const delay = i * 60;
     return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px">
-      <div style="width:32px;height:${h}px;border-radius:8px;background:${isLast ? 'var(--accent)' : '#E5E5EA'};transition:height 0.6s"></div>
+      <div class="bar-anim" data-h="${h}" style="width:32px;height:0px;border-radius:8px;background:${isLast ? 'var(--accent)' : '#E5E5EA'};transition:height 0.5s ease-out ${delay}ms"></div>
       <span style="font-size:10px;font-weight:${isLast?600:400};color:${isLast?'var(--accent)':'var(--text3)'}">${m.label}</span>
     </div>`;
   }).join('');
@@ -1008,6 +1018,29 @@ function renderToday() {
   container.innerHTML = html;
   lucide.createIcons();
   animateHero();
+
+  // Animer les barres depuis 0
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.bar-anim').forEach(el => {
+      const targetH = el.dataset.h;
+      requestAnimationFrame(() => { el.style.height = targetH + 'px'; });
+    });
+  });
+
+  // Animer le donut progressivement
+  const donutSvg = document.getElementById('donut-svg-today');
+  if (donutSvg) {
+    donutSvg.querySelectorAll('circle').forEach((c, idx) => {
+      const parts = (c.getAttribute('stroke-dasharray') || '0 0').split(' ');
+      const dash = parseFloat(parts[0]);
+      const gap = parseFloat(parts[1]);
+      c.setAttribute('stroke-dasharray', '0 ' + (dash + gap));
+      c.style.transition = 'stroke-dasharray 0.6s ease-out ' + (idx * 80) + 'ms';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        c.setAttribute('stroke-dasharray', dash + ' ' + gap);
+      }));
+    });
+  }
 }
 
 // ══════════════════════════════════════

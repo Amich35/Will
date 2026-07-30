@@ -1026,6 +1026,24 @@ function renderToday() {
     </div>
   </div>`;
 
+  // ② BIS — GRILLE CATÉGORIES
+  if (catEntries.length > 0) {
+    const gridItems = catEntries.map(([cat, amt]) => {
+      const pct = monthTotal > 0 ? Math.round(amt / monthTotal * 100) : 0;
+      return '<div style="flex:1;min-width:calc(50% - 6px);padding:12px 14px;background:var(--bg);border-radius:12px">'
+        + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+        + '<div style="width:8px;height:8px;border-radius:4px;background:' + (CAT_COLORS[cat]||'#ccc') + '"></div>'
+        + '<span style="font-size:12px;color:var(--text2)">' + (CAT_LABELS[cat]||cat) + '</span></div>'
+        + '<p style="font-size:17px;font-weight:700;color:var(--text)">' + Math.round(amt) + ' €</p>'
+        + '<p style="font-size:11px;color:var(--text3);margin-top:2px">' + pct + '% du mois</p>'
+        + '</div>';
+    }).join('');
+    html += '<div class="card fade-up" style="animation-delay:90ms;padding:14px">'
+      + '<p style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">Ce mois par catégorie</p>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:8px">' + gridItems + '</div>'
+      + '</div>';
+  }
+
   // ③ ANALYSE WILL
   const insight = generateInsight(vehicle, vExpenses, cats);
   html += `<div class="card fade-up" style="background:linear-gradient(135deg,var(--dark1),var(--dark2));position:relative;overflow:hidden;animation-delay:120ms">

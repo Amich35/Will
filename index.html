@@ -1330,8 +1330,8 @@ function renderGarage() {
     const badgeLabel = assExpired ? 'Assurance à vérifier' : entSoon ? 'Révision bientôt' : 'À jour';
     html += `<div class="card fade-up" style="cursor:pointer;animation-delay:${i*60}ms;padding:0;overflow:hidden;active:transform:scale(0.98)" onclick="selectVehicle('${v.id}');switchTab('today')">
       <div style="background:${color}10;padding:20px 20px 12px;position:relative">
-        <div style="width:100%;height:72px;display:flex;align-items:center;justify-content:center;margin-bottom:4px">
-          ${svgColored}
+        <div style="width:100%;height:64px;display:flex;align-items:center;justify-content:center;margin-bottom:4px;padding:0 24px">
+          <div style="width:140px;height:56px;display:flex;align-items:center;justify-content:center">${svgColored}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
           <div style="width:8px;height:8px;border-radius:4px;background:${badgeColor};flex-shrink:0"></div>
@@ -1724,8 +1724,13 @@ function renderAccount() {
   container.innerHTML = `
     <div style="text-align:center;padding:12px 0 24px">
       <div style="width:60px;height:60px;border-radius:30px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:600;margin:0 auto 12px">${name.charAt(0).toUpperCase()}</div>
-      <p style="font-size:18px;font-weight:600;color:var(--text)">${name}</p>
-      <p style="font-size:13px;color:var(--text2);margin-top:4px">${vehicles.length} véhicule${vehicles.length > 1 ? 's' : ''} · ${totalExp} dépense${totalExp > 1 ? 's' : ''}</p>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px">
+        <p id="account-name-display" style="font-size:18px;font-weight:600;color:var(--text)">${name}</p>
+        <button onclick="startEditName()" style="background:none;border:none;padding:4px;cursor:pointer;display:flex;align-items:center">
+          <i data-lucide="pencil" style="width:14px;height:14px;color:var(--text3)"></i>
+        </button>
+      </div>
+      <p style="font-size:13px;color:var(--text2)">${vehicles.length} véhicule${vehicles.length > 1 ? 's' : ''} · ${totalExp} dépense${totalExp > 1 ? 's' : ''}</p>
     </div>
 
     <div class="card" style="margin-bottom:8px">
@@ -2209,6 +2214,44 @@ function formatDate(dateStr) {
   if (diff === 0) return "Aujourd'hui";
   if (diff === 1) return 'Hier';
   return d.toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
+}
+
+function startEditName() {
+  const display = document.getElementById('account-name-display');
+  if (!display) return;
+  const current = display.textContent.trim();
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = current;
+  input.maxLength = 30;
+  input.style.cssText = 'font-size:18px;font-weight:600;color:var(--text);border:none;border-bottom:2px solid var(--accent);background:transparent;text-align:center;outline:none;width:160px;padding:2px 4px';
+  display.replaceWith(input);
+  input.focus();
+  input.select();
+
+  async function saveEditName() {
+    const newName = input.value.trim();
+    if (!newName) { input.replaceWith(display); return; }
+    const p = document.createElement('p');
+    p.id = 'account-name-display';
+    p.style.cssText = 'font-size:18px;font-weight:600;color:var(--text)';
+    p.textContent = newName;
+    input.replaceWith(p);
+    // Sauvegarder dans Supabase users + metadata
+    try {
+      await sb.from('users').update({ name: newName }).eq('id', currentUser.id);
+      await sb.auth.updateUser({ data: { full_name: newName } });
+      if (currentUser.user_metadata) currentUser.user_metadata.full_name = newName;
+      // Mettre à jour les salutations visibles
+      const helloEl = document.getElementById('today-hello');
+      if (helloEl) helloEl.textContent = 'Bonjour ' + newName;
+      const garageEl = document.getElementById('garage-hello');
+      if (garageEl) garageEl.textContent = 'Bonjour ' + newName;
+    } catch(e) { console.warn('Sauvegarde pseudo:', e); }
+  }
+
+  input.addEventListener('blur', saveEditName);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } });
 }
 
 async function doLogout() {

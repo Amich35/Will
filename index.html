@@ -376,6 +376,51 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 </div>
 
 <!-- ═══════════════════════════════════
+     MOMENT WOW — Transition onboarding
+     ═══════════════════════════════════ -->
+<div id="wow-screen" style="display:none;position:fixed;inset:0;z-index:500;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 32px">
+  <style>
+    @keyframes wowFadeIn  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes wowCheck   { from{opacity:0;transform:scale(0.5)} to{opacity:1;transform:scale(1)} }
+    @keyframes wowPulse   { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+    .wow-step { opacity:0; display:flex; align-items:center; gap:12px; }
+    .wow-step.done { animation: wowFadeIn 0.4s ease-out forwards; }
+    .wow-check { width:22px;height:22px;border-radius:11px;background:var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:0; }
+    .wow-check.visible { animation: wowCheck 0.3s ease-out forwards; }
+  </style>
+
+  <!-- Silhouette véhicule -->
+  <div id="wow-vehicle-icon" style="width:100px;height:100px;border-radius:28px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;margin-bottom:32px;opacity:0;animation:wowFadeIn 0.5s ease-out 0.2s forwards;box-shadow:0 12px 40px rgba(0,122,255,0.3)">
+    <i data-lucide="car" style="width:48px;height:48px;color:#fff"></i>
+  </div>
+
+  <h2 style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:8px;opacity:0;animation:wowFadeIn 0.4s ease-out 0.5s forwards">Will est prêt.</h2>
+  <p id="wow-vehicle-name" style="font-size:15px;color:var(--text2);margin-bottom:36px;opacity:0;animation:wowFadeIn 0.4s ease-out 0.7s forwards"></p>
+
+  <!-- Checklist animée -->
+  <div style="display:flex;flex-direction:column;gap:14px;width:100%;max-width:280px;margin-bottom:40px">
+    <div class="wow-step" id="wow-step-1">
+      <div class="wow-check" id="wow-check-1"><i data-lucide="check" style="width:13px;height:13px;color:#fff"></i></div>
+      <span style="font-size:15px;color:var(--text)">Véhicule créé</span>
+    </div>
+    <div class="wow-step" id="wow-step-2">
+      <div class="wow-check" id="wow-check-2"><i data-lucide="check" style="width:13px;height:13px;color:#fff"></i></div>
+      <span style="font-size:15px;color:var(--text)">Données chargées</span>
+    </div>
+    <div class="wow-step" id="wow-step-3">
+      <div class="wow-check" id="wow-check-3"><i data-lucide="check" style="width:13px;height:13px;color:#fff"></i></div>
+      <span style="font-size:15px;color:var(--text)">Calcul du premier budget</span>
+    </div>
+  </div>
+
+  <div id="wow-cta" style="width:100%;max-width:280px;opacity:0">
+    <button class="btn btn-primary" onclick="finishWow()" style="height:52px;font-size:17px;animation:wowPulse 1.5s ease-in-out 0.5s infinite">
+      Découvrir Will
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
      MAIN APP
      ═══════════════════════════════════ -->
 <div id="app-garage" class="screen">
@@ -927,19 +972,75 @@ function showVehicleStep2() {
 async function saveFirstVehicle() {
   const brand = document.getElementById('v-brand').value.trim();
   const model = document.getElementById('v-model').value.trim();
+  if (!brand || !model) {
+    document.getElementById('v-brand').style.borderColor = brand ? '' : 'var(--red)';
+    document.getElementById('v-model').style.borderColor = model ? '' : 'var(--red)';
+    return;
+  }
   const year = parseInt(document.getElementById('v-year').value) || new Date().getFullYear();
   const fuel = document.getElementById('v-fuel').value || 'essence';
-  const km = parseInt(document.getElementById('v-km').value) || 0;
+  const km   = parseInt(document.getElementById('v-km').value) || 0;
   const type = document.getElementById('v-type').value || 'berline';
 
+  const btn = document.getElementById('ob-save-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Création en cours…'; }
+
   const { error } = await sb.from('vehicles').insert({
-    user_id: currentUser.id, brand, model, year, fuel, mileage: km, vehicle_type: type
+    user_id: currentUser.id, brand, model, year, fuel, mileage: km, vehicle_type: type, archived: false
   });
 
-  if (error) { alert('Erreur : ' + error.message); return; }
+  if (error) {
+    alert('Erreur : ' + error.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Créer mon Will'; }
+    return;
+  }
 
   await loadUserData();
-  showApp();
+  showWowScreen(brand + ' ' + model);
+}
+
+function showWowScreen(vehicleName) {
+  // Afficher l'écran wow
+  const wow = document.getElementById('wow-screen');
+  wow.style.display = 'flex';
+  document.getElementById('wow-vehicle-name').textContent = vehicleName;
+  lucide.createIcons();
+
+  // Séquence animée des 3 étapes
+  const steps = [
+    { step: 'wow-step-1', check: 'wow-check-1', delay: 1000 },
+    { step: 'wow-step-2', check: 'wow-check-2', delay: 1700 },
+    { step: 'wow-step-3', check: 'wow-check-3', delay: 2400 },
+  ];
+
+  steps.forEach(({ step, check, delay }) => {
+    setTimeout(() => {
+      document.getElementById(step).classList.add('done');
+      setTimeout(() => {
+        document.getElementById(check).classList.add('visible');
+      }, 350);
+    }, delay);
+  });
+
+  // Afficher le CTA après toutes les étapes
+  setTimeout(() => {
+    const cta = document.getElementById('wow-cta');
+    cta.style.opacity = '0';
+    cta.style.transition = 'opacity 0.5s ease-out';
+    requestAnimationFrame(() => requestAnimationFrame(() => { cta.style.opacity = '1'; }));
+  }, 3200);
+}
+
+function finishWow() {
+  const wow = document.getElementById('wow-screen');
+  wow.style.opacity = '1';
+  wow.style.transition = 'opacity 0.4s ease-out';
+  wow.style.opacity = '0';
+  setTimeout(() => {
+    wow.style.display = 'none';
+    wow.style.opacity = '1';
+    showApp();
+  }, 400);
 }
 
 // ══════════════════════════════════════

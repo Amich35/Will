@@ -19,6 +19,7 @@ var sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 var authMode="signup";
 var currentUser=null,vehicles=[],expenses=[],catalogOffers=[];
 var selectedVehicleId=null,selectedExpenseCat="all",selectedPeriod="12m";
+var _prevVehicleIndex=-1;
 var editingExpenseId=null,editingVehicleId=null;
 </script>
 <script src="https://unpkg.com/lucide@latest"></script>
@@ -235,6 +236,16 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 .ptr-indicator.ready svg { color:var(--accent); transform:rotate(180deg); opacity:1; }
 .ptr-indicator.loading svg { opacity:1; animation:ptr-spin 0.8s linear infinite; }
 @keyframes ptr-spin { to { transform:rotate(360deg); } }
+
+/* ── Switch véhicule animé ── */
+.vehicle-slide-out-left  { animation: vSlideOutLeft  150ms cubic-bezier(0.32,0.72,0,1) forwards; }
+.vehicle-slide-out-right { animation: vSlideOutRight 150ms cubic-bezier(0.32,0.72,0,1) forwards; }
+.vehicle-slide-in-left   { animation: vSlideInLeft   150ms cubic-bezier(0.32,0.72,0,1) forwards; }
+.vehicle-slide-in-right  { animation: vSlideInRight  150ms cubic-bezier(0.32,0.72,0,1) forwards; }
+@keyframes vSlideOutLeft  { from{opacity:1;transform:translateX(0)}  to{opacity:0;transform:translateX(-48px)} }
+@keyframes vSlideOutRight { from{opacity:1;transform:translateX(0)}  to{opacity:0;transform:translateX(48px)} }
+@keyframes vSlideInLeft   { from{opacity:0;transform:translateX(48px)}  to{opacity:1;transform:translateX(0)} }
+@keyframes vSlideInRight  { from{opacity:0;transform:translateX(-48px)} to{opacity:1;transform:translateX(0)} }
 </style>
 </head>
 <body>
@@ -2774,11 +2785,51 @@ function toggleLoanFields() {
 }
 
 function selectVehicle(id) {
-  selectedVehicleId = id;
+  if (id === selectedVehicleId) return;
+
+  // Calcul de la direction
+  const newIndex = vehicles.findIndex(v => v.id === id);
+  const direction = (_prevVehicleIndex < 0 || newIndex > _prevVehicleIndex) ? 'left' : 'right';
+  _prevVehicleIndex = newIndex;
+
+  // Conteneur actif selon l'onglet
   const activeTab = document.querySelector('.tab-item.active')?.dataset?.tab;
-  if (activeTab === 'expenses') renderExpenses();
-  else if (activeTab === 'savings') renderSavings();
-  else renderToday();
+  const containerId = activeTab === 'expenses' ? 'expenses-content'
+                    : activeTab === 'savings'  ? 'savings-content'
+                    : activeTab === 'garage'   ? 'garage-cards'
+                    : 'today-content';
+  const container = document.getElementById(containerId);
+
+  // Slide-out du contenu actuel
+  const outClass = direction === 'left' ? 'vehicle-slide-out-left' : 'vehicle-slide-out-right';
+  const inClass  = direction === 'left' ? 'vehicle-slide-in-left'  : 'vehicle-slide-in-right';
+
+  if (container) {
+    container.classList.add(outClass);
+    container.addEventListener('animationend', function onOut() {
+      container.removeEventListener('animationend', onOut);
+      container.classList.remove(outClass);
+
+      // Changer le véhicule et re-rendre
+      selectedVehicleId = id;
+      if (activeTab === 'expenses') renderExpenses();
+      else if (activeTab === 'savings') renderSavings();
+      else if (activeTab === 'garage') renderGarage();
+      else renderToday();
+
+      // Slide-in du nouveau contenu
+      container.classList.add(inClass);
+      container.addEventListener('animationend', function onIn() {
+        container.removeEventListener('animationend', onIn);
+        container.classList.remove(inClass);
+      }, { once: true });
+    }, { once: true });
+  } else {
+    selectedVehicleId = id;
+    if (activeTab === 'expenses') renderExpenses();
+    else if (activeTab === 'savings') renderSavings();
+    else renderToday();
+  }
 }
 
 function getUserName() {

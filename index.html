@@ -245,9 +245,10 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 
 /* ── Garage swipe row ── */
 .garage-swipe-row { position:relative; overflow:hidden; border-radius:16px; margin-bottom:12px; }
-.garage-swipe-inner { transition:transform 0.25s cubic-bezier(0.32,0.72,0,1); will-change:transform; }
-.garage-swipe-actions { position:absolute; right:0; top:0; bottom:0; display:flex; align-items:stretch; border-radius:0 16px 16px 0; overflow:hidden; }
-.garage-swipe-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; width:76px; border:none; cursor:pointer; font-size:11px; font-weight:600; color:#fff; gap:4px; }
+.garage-swipe-outer { display:flex; align-items:stretch; width:calc(100% + 228px); }
+.garage-swipe-inner { flex-shrink:0; width:calc(100% - 228px); transition:transform 0.25s cubic-bezier(0.32,0.72,0,1); will-change:transform; }
+.garage-swipe-actions { display:flex; align-items:stretch; width:228px; flex-shrink:0; border-radius:0 16px 16px 0; overflow:hidden; }
+.garage-swipe-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; width:76px; border:none; cursor:pointer; font-size:11px; font-weight:600; color:#fff; gap:4px; flex-shrink:0; }
 .garage-swipe-btn-edit { background:#636366; }
 .garage-swipe-btn-archive { background:var(--orange); }
 .garage-swipe-btn-delete { background:var(--red); }
@@ -1671,11 +1672,11 @@ const VEHICLE_SVG = {
 function openVehicleToday(vehicleId) {
   // Ne pas naviguer si la ligne est ouverte (swipe en cours)
   const inner = event.currentTarget;
-  if (inner && inner._isOpen) {
-    // Refermer le swipe
-    inner.style.transition = 'transform 0.25s cubic-bezier(0.32,0.72,0,1)';
-    inner.style.transform = 'translateX(0)';
-    inner._isOpen = false;
+  const outer = inner ? inner.parentElement : null;
+  if (outer && outer._isOpen) {
+    outer.style.transition = 'transform 0.25s cubic-bezier(0.32,0.72,0,1)';
+    outer.style.transform = 'translateX(0)';
+    outer._isOpen = false;
     return;
   }
   // Transition expand : la carte "s'ouvre" vers Aujourd'hui
@@ -1723,23 +1724,25 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
   </div>`;
 
   return `<div class="garage-swipe-row fade-up" style="animation-delay:${i*40}ms">
-    <div class="garage-swipe-actions">
-      <button class="garage-swipe-btn garage-swipe-btn-edit" onclick="openEditVehicle('${v.id}')">
-        <i data-lucide="pencil" style="width:16px;height:16px"></i>Modifier
-      </button>
-      <button class="garage-swipe-btn garage-swipe-btn-archive" onclick="garageArchiveVehicle('${v.id}',this)">
-        <i data-lucide="archive" style="width:16px;height:16px"></i>Archiver
-      </button>
-      <button class="garage-swipe-btn garage-swipe-btn-delete" onclick="garageDeleteVehicle('${v.id}',this)">
-        <i data-lucide="trash-2" style="width:16px;height:16px"></i>Supprimer
-      </button>
-    </div>
-    <div class="garage-swipe-inner"
-      ontouchstart="garageSwipeStart(event,this)"
-      ontouchmove="garageSwipeMove(event,this)"
-      ontouchend="garageSwipeEnd(event,this)"
-      onclick="openVehicleToday('${v.id}')">
-      ${cardHtml}
+    <div class="garage-swipe-outer">
+      <div class="garage-swipe-inner"
+        ontouchstart="garageSwipeStart(event,this)"
+        ontouchmove="garageSwipeMove(event,this)"
+        ontouchend="garageSwipeEnd(event,this)"
+        onclick="openVehicleToday('${v.id}')">
+        ${cardHtml}
+      </div>
+      <div class="garage-swipe-actions">
+        <button class="garage-swipe-btn garage-swipe-btn-edit" onclick="openEditVehicle('${v.id}')">
+          <i data-lucide="pencil" style="width:16px;height:16px"></i>Modifier
+        </button>
+        <button class="garage-swipe-btn garage-swipe-btn-archive" onclick="garageArchiveVehicle('${v.id}',this)">
+          <i data-lucide="archive" style="width:16px;height:16px"></i>Archiver
+        </button>
+        <button class="garage-swipe-btn garage-swipe-btn-delete" onclick="garageDeleteVehicle('${v.id}',this)">
+          <i data-lucide="trash-2" style="width:16px;height:16px"></i>Supprimer
+        </button>
+      </div>
     </div>
   </div>`;
 }
@@ -2563,14 +2566,16 @@ function initAllPullToRefresh() {
 const GARAGE_ACTIONS_W = 228; // 3 × 76px
 
 function garageSwipeStart(e, inner) {
+  const outer = inner.parentElement;
   inner._startX = e.touches[0].clientX;
   inner._startY = e.touches[0].clientY;
-  inner._baseX  = inner._isOpen ? -GARAGE_ACTIONS_W : 0;
+  inner._baseX  = outer._isOpen ? -GARAGE_ACTIONS_W : 0;
   inner._lock   = null;
-  inner.style.transition = 'none';
+  outer.style.transition = 'none';
 }
 
 function garageSwipeMove(e, inner) {
+  const outer = inner.parentElement;
   const dx = e.touches[0].clientX - inner._startX;
   const dy = e.touches[0].clientY - inner._startY;
   if (!inner._lock) inner._lock = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
@@ -2578,36 +2583,35 @@ function garageSwipeMove(e, inner) {
   e.preventDefault();
   const x = Math.max(-GARAGE_ACTIONS_W, Math.min(0, inner._baseX + dx));
   inner._currentX = x;
-  inner.style.transform = `translateX(${x}px)`;
+  outer.style.transform = `translateX(${x}px)`;
 }
 
 function garageSwipeEnd(e, inner) {
+  const outer = inner.parentElement;
   if (inner._lock === 'y') return;
-  // Si swipe rapide vers droite sur une ligne ouverte → fermer sans naviguer
-  const dx = e.changedTouches[0].clientX - inner._startX;
-  inner.style.transition = 'transform 0.25s cubic-bezier(0.32,0.72,0,1)';
+  outer.style.transition = 'transform 0.25s cubic-bezier(0.32,0.72,0,1)';
   if ((inner._currentX || 0) < -GARAGE_ACTIONS_W / 3) {
-    inner.style.transform = `translateX(-${GARAGE_ACTIONS_W}px)`;
-    inner._isOpen = true;
+    outer.style.transform = `translateX(-${GARAGE_ACTIONS_W}px)`;
+    outer._isOpen = true;
     // Fermer les autres
-    document.querySelectorAll('.garage-swipe-inner').forEach(other => {
-      if (other !== inner && other._isOpen) {
+    document.querySelectorAll('.garage-swipe-outer').forEach(other => {
+      if (other !== outer && other._isOpen) {
         other.style.transition = 'transform 0.25s cubic-bezier(0.32,0.72,0,1)';
         other.style.transform = 'translateX(0)';
         other._isOpen = false;
       }
     });
   } else {
-    inner.style.transform = 'translateX(0)';
-    inner._isOpen = false;
+    outer.style.transform = 'translateX(0)';
+    outer._isOpen = false;
   }
 }
 
 function garageCloseAllSwipes() {
-  document.querySelectorAll('.garage-swipe-inner').forEach(inner => {
-    inner.style.transition = 'transform 0.2s ease';
-    inner.style.transform = 'translateX(0)';
-    inner._isOpen = false;
+  document.querySelectorAll('.garage-swipe-outer').forEach(outer => {
+    outer.style.transition = 'transform 0.2s ease';
+    outer.style.transform = 'translateX(0)';
+    outer._isOpen = false;
   });
 }
 

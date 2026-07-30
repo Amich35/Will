@@ -685,6 +685,89 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   <button class="btn btn-secondary" onclick="hideSheet('valuation-sheet')" style="margin-top:10px">Annuler</button>
 </div>
 
+<!-- Simulateur — slide-in -->
+<div id="simulator-panel" style="position:fixed;inset:0;z-index:300;transform:translateX(100%);transition:transform 0.25s cubic-bezier(0.32,0.72,0,1);background:var(--bg);display:flex;flex-direction:column;overflow:hidden">
+  <div style="display:flex;align-items:center;gap:12px;padding:56px 20px 16px;background:var(--card);box-shadow:var(--shadow)">
+    <button onclick="closeSimulator()" style="width:44px;height:44px;border-radius:50%;border:none;background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+      <i data-lucide="chevron-left" style="width:20px;height:20px;color:var(--text)"></i>
+    </button>
+    <span style="font-size:17px;font-weight:600;color:var(--text)">Simuler mon prochain véhicule</span>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:24px 20px calc(40px + var(--safe-bottom))">
+
+    <!-- Mode financement -->
+    <p style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Mode de financement</p>
+    <div id="sim-mode-chips" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+      <button class="chip active" onclick="selectSimMode('comptant')">Comptant</button>
+      <button class="chip" onclick="selectSimMode('credit')">Crédit</button>
+      <button class="chip" onclick="selectSimMode('loa')">LOA</button>
+      <button class="chip" onclick="selectSimMode('lld')">LLD</button>
+    </div>
+
+    <!-- Prix véhicule -->
+    <div class="input-group" style="margin-bottom:14px">
+      <label>Prix du véhicule (€)</label>
+      <input id="sim-price" type="number" class="input-field" placeholder="ex. 25000" inputmode="decimal" oninput="computeSimulation()">
+    </div>
+
+    <!-- Champs crédit/LOA -->
+    <div id="sim-loan-fields" style="display:none;flex-direction:column;gap:12px;margin-bottom:14px">
+      <div style="display:flex;gap:10px">
+        <div class="input-group" style="flex:1">
+          <label>Apport (€)</label>
+          <input id="sim-apport" type="number" class="input-field" placeholder="ex. 3000" inputmode="decimal" oninput="computeSimulation()">
+        </div>
+        <div class="input-group" style="flex:1">
+          <label>Durée (mois)</label>
+          <input id="sim-months" type="number" class="input-field" placeholder="ex. 48" inputmode="numeric" oninput="computeSimulation()">
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Taux annuel (%)</label>
+        <input id="sim-rate" type="number" class="input-field" placeholder="ex. 4.5" inputmode="decimal" oninput="computeSimulation()">
+      </div>
+    </div>
+
+    <!-- Frais annuels estimés -->
+    <div class="input-group" style="margin-bottom:20px">
+      <label>Dépenses auto annuelles estimées (€)</label>
+      <input id="sim-annual" type="number" class="input-field" placeholder="ex. 2000" inputmode="decimal" oninput="computeSimulation()">
+    </div>
+
+    <!-- Résultat -->
+    <div id="sim-result" style="display:none">
+      <div class="card" style="background:linear-gradient(135deg,var(--dark1),var(--dark2));margin-bottom:12px">
+        <p style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px">Résultat de la simulation</p>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+          <span style="font-size:14px;color:#E5E5EA">Coût total estimé</span>
+          <span id="sim-total" style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+          <span style="font-size:14px;color:#E5E5EA">Par mois</span>
+          <span id="sim-monthly" style="font-size:18px;font-weight:700;color:var(--accent)">—</span>
+        </div>
+        <div id="sim-interest-row" style="display:none;justify-content:space-between;align-items:baseline">
+          <span style="font-size:13px;color:#8E8E93">dont intérêts</span>
+          <span id="sim-interest" style="font-size:14px;color:#8E8E93">—</span>
+        </div>
+      </div>
+      <div class="card" style="border:1px solid var(--sep);box-shadow:none;cursor:pointer" onclick="trackSimulatorCTA()">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;border-radius:12px;background:rgba(175,82,222,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i data-lucide="landmark" style="width:20px;height:20px;color:var(--purple)"></i>
+          </div>
+          <div style="flex:1">
+            <p style="font-size:14px;font-weight:600;color:var(--text)">Boursorama Auto</p>
+            <p style="font-size:12px;color:var(--text2);margin-top:2px">Obtenir un financement personnalisé</p>
+          </div>
+          <i data-lucide="arrow-right" style="width:16px;height:16px;color:var(--accent);flex-shrink:0"></i>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <!-- Fiche offre — slide-in -->
 <div id="offer-panel" style="position:fixed;inset:0;z-index:300;transform:translateX(100%);transition:transform 0.25s cubic-bezier(0.32,0.72,0,1);background:var(--bg);display:flex;flex-direction:column">
   <div style="display:flex;align-items:center;gap:12px;padding:56px 20px 16px;background:var(--card);box-shadow:var(--shadow)">
@@ -1752,6 +1835,16 @@ function renderSavings() {
     </div>`;
   }
 
+  // ── Simulateur ──
+  html += '<div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;padding:20px 4px 10px">Simulateur</div>'
+    + '<div class="card fade-up" style="cursor:pointer;border:1px solid var(--sep);box-shadow:none" onclick="openSimulator()">'
+    + '<div style="display:flex;align-items:center;gap:14px">'
+    + '<div style="width:48px;height:48px;border-radius:14px;background:rgba(0,122,255,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+    + '<i data-lucide="calculator" style="width:22px;height:22px;color:var(--accent)"></i></div>'
+    + '<div style="flex:1"><p style="font-size:15px;font-weight:600;color:var(--text)">Simuler mon prochain véhicule</p>'
+    + '<p style="font-size:13px;color:var(--text2);margin-top:3px">Coût total, mensualité, intérêts</p></div>'
+    + '<i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--text3);flex-shrink:0"></i></div></div>';
+
   container.innerHTML = html;
   lucide.createIcons();
 }
@@ -2659,6 +2752,113 @@ async function saveValuation() {
   valuations = val || [];
   heroAnimatedVehicles.delete(selectedVehicleId);
   renderToday();
+}
+
+// ══════════════════════════════════════
+// SIMULATEUR VÉHICULE
+// ══════════════════════════════════════
+var simMode = 'comptant';
+
+function openSimulator() {
+  simMode = 'comptant';
+  // Reset chips
+  document.querySelectorAll('#sim-mode-chips .chip').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === 'Comptant');
+  });
+  // Reset champs
+  ['sim-price','sim-apport','sim-months','sim-rate','sim-annual'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  // Pré-remplir dépenses annuelles avec la moyenne de l'user
+  if (expenses.length > 0) {
+    const yearAgo = new Date(); yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+    const annual = expenses
+      .filter(e => e.vehicle_id === selectedVehicleId && new Date(e.date) >= yearAgo)
+      .reduce((s, e) => s + parseFloat(e.amount), 0);
+    if (annual > 0) {
+      const el = document.getElementById('sim-annual');
+      if (el) el.value = Math.round(annual);
+    }
+  }
+  document.getElementById('sim-loan-fields').style.display = 'none';
+  document.getElementById('sim-result').style.display = 'none';
+  lucide.createIcons();
+  document.getElementById('simulator-panel').style.transform = 'translateX(0)';
+}
+
+function closeSimulator() {
+  document.getElementById('simulator-panel').style.transform = 'translateX(100%)';
+}
+
+function selectSimMode(mode) {
+  simMode = mode;
+  const labels = { comptant:'Comptant', credit:'Crédit', loa:'LOA', lld:'LLD' };
+  document.querySelectorAll('#sim-mode-chips .chip').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === labels[mode]);
+  });
+  const loanFields = document.getElementById('sim-loan-fields');
+  loanFields.style.display = (mode !== 'comptant') ? 'flex' : 'none';
+  computeSimulation();
+}
+
+function computeSimulation() {
+  const price  = parseFloat(document.getElementById('sim-price')?.value) || 0;
+  const annual = parseFloat(document.getElementById('sim-annual')?.value) || 0;
+  if (price <= 0) { document.getElementById('sim-result').style.display = 'none'; return; }
+
+  let totalFinancement = price;
+  let monthly = 0;
+  let interests = 0;
+
+  if (simMode === 'comptant') {
+    monthly = annual / 12;
+    totalFinancement = price;
+  } else {
+    const apport = parseFloat(document.getElementById('sim-apport')?.value) || 0;
+    const months = parseInt(document.getElementById('sim-months')?.value) || 48;
+    const rate   = parseFloat(document.getElementById('sim-rate')?.value) || 0;
+    const capital = price - apport;
+    if (rate > 0 && months > 0) {
+      const r = rate / 100 / 12;
+      monthly = capital * r / (1 - Math.pow(1 + r, -months));
+      interests = (monthly * months) - capital;
+      totalFinancement = apport + monthly * months;
+    } else {
+      monthly = months > 0 ? capital / months : capital;
+      totalFinancement = price;
+    }
+    monthly += annual / 12;
+  }
+
+  const totalCout = totalFinancement + annual * (simMode === 'comptant' ? 5 : (parseInt(document.getElementById('sim-months')?.value) || 48) / 12);
+
+  document.getElementById('sim-total').textContent   = Math.round(totalCout).toLocaleString('fr-FR') + ' €';
+  document.getElementById('sim-monthly').textContent = Math.round(monthly).toLocaleString('fr-FR') + ' €/mois';
+
+  const interestRow = document.getElementById('sim-interest-row');
+  if (interests > 0) {
+    document.getElementById('sim-interest').textContent = Math.round(interests).toLocaleString('fr-FR') + ' €';
+    interestRow.style.display = 'flex';
+  } else {
+    interestRow.style.display = 'none';
+  }
+
+  document.getElementById('sim-result').style.display = 'block';
+}
+
+async function trackSimulatorCTA() {
+  // Tracker le clic comme un lead B2B vers Boursorama
+  const bourso = catalogOffers.find(o => o.partner && o.partner.toLowerCase().includes('bourso'));
+  if (bourso && currentUser) {
+    await sb.from('offer_clicks').insert({
+      user_id: currentUser.id, offer_id: bourso.id,
+      vehicle_id: selectedVehicleId, clicked_at: new Date().toISOString()
+    }).catch(() => {});
+  }
+  // Rediriger vers Économies → fiche Boursorama ou URL directe
+  closeSimulator();
+  switchTab('savings');
 }
 
 async function doLogout() {

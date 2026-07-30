@@ -244,14 +244,40 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 }
 
 /* ── Garage swipe row ── */
-.garage-swipe-row { position:relative; overflow:hidden; border-radius:16px; margin-bottom:12px; }
-.garage-swipe-outer { display:flex; align-items:stretch; width:calc(100% + 228px); }
-.garage-swipe-inner { flex-shrink:0; width:calc(100% - 228px); transition:transform 0.25s cubic-bezier(0.32,0.72,0,1); will-change:transform; }
-.garage-swipe-actions { display:flex; align-items:stretch; width:228px; flex-shrink:0; border-radius:0 16px 16px 0; overflow:hidden; }
-.garage-swipe-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; width:76px; border:none; cursor:pointer; font-size:11px; font-weight:600; color:#fff; gap:4px; flex-shrink:0; }
-.garage-swipe-btn-edit { background:#636366; }
-.garage-swipe-btn-archive { background:var(--orange); }
-.garage-swipe-btn-delete { background:var(--red); }
+.garage-swipe-row { position:relative; margin-bottom:12px; touch-action:pan-y; }
+.garage-swipe-card {
+  border-radius:16px; overflow:hidden;
+  transition:transform 280ms cubic-bezier(0.34,1.2,0.64,1), border-radius 280ms ease, box-shadow 280ms ease;
+  will-change:transform;
+  position:relative; z-index:1;
+}
+.garage-action-bar {
+  position:absolute; right:12px; top:50%; transform:translateY(-50%);
+  display:flex; align-items:center; gap:8px;
+  background:rgba(30,30,35,0.72);
+  backdrop-filter:blur(16px) saturate(180%);
+  -webkit-backdrop-filter:blur(16px) saturate(180%);
+  border-radius:18px;
+  padding:8px 10px;
+  box-shadow:0 4px 24px rgba(0,0,0,0.18);
+  opacity:0; pointer-events:none;
+  transition:opacity 200ms ease, transform 200ms ease;
+  z-index:0;
+}
+.garage-action-bar.visible { opacity:1; pointer-events:auto; }
+.garage-action-btn {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  width:52px; height:52px; border-radius:13px; border:none; cursor:pointer;
+  gap:3px; background:transparent;
+  transition:transform 150ms ease, opacity 150ms ease;
+  opacity:0; transform:scale(0.7) translateX(12px);
+}
+.garage-action-btn.show { opacity:1; transform:scale(1) translateX(0); }
+.garage-action-btn:active { transform:scale(0.9); }
+.garage-action-btn span { font-size:10px; font-weight:600; color:rgba(255,255,255,0.85); letter-spacing:0.1px; }
+.garage-action-btn-edit   { background:rgba(91,100,117,0.85); }
+.garage-action-btn-archive { background:rgba(245,166,35,0.9); }
+.garage-action-btn-delete  { background:rgba(255,59,48,0.9); }
 
 /* ── Switch véhicule animé ── */
 .vehicle-slide-out-left  { animation: vSlideOutLeft  150ms cubic-bezier(0.32,0.72,0,1) forwards; }
@@ -1670,17 +1696,16 @@ const VEHICLE_SVG = {
 
 // ── Builders cartes Garage ──
 function openVehicleToday(vehicleId) {
-  // Ne pas naviguer si la ligne est ouverte (swipe en cours)
-  const inner = event.currentTarget;
-  const outer = inner ? inner.parentElement : null;
-  if (outer && outer._isOpen) {
-    outer.style.transition = 'transform 0.25s cubic-bezier(0.32,0.72,0,1)';
-    outer.style.transform = 'translateX(0)';
-    outer._isOpen = false;
+  // Ne pas naviguer si le swipe est ouvert
+  const swipeCard = event.currentTarget;
+  if (swipeCard && swipeCard._isOpen) {
+    swipeCard._isOpen = false;
+    swipeCard.style.transition = 'transform 280ms cubic-bezier(0.34,1.2,0.64,1), border-radius 280ms ease, box-shadow 280ms ease';
+    _garageSetSwipeProgress(swipeCard, _garageGetActionBar(swipeCard), 0);
     return;
   }
   // Transition expand : la carte "s'ouvre" vers Aujourd'hui
-  const card = inner ? inner.querySelector('.garage-vehicle-card') : null;
+  const card = swipeCard ? swipeCard.querySelector('.garage-vehicle-card') : null;
   if (card) {
     card.style.transition = 'transform 180ms cubic-bezier(0.32,0.72,0,1), opacity 180ms ease-out';
     card.style.transform = 'scale(1.03)';
@@ -1723,26 +1748,30 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
     </div>
   </div>`;
 
-  return `<div class="garage-swipe-row fade-up" style="animation-delay:${i*40}ms">
-    <div class="garage-swipe-outer">
-      <div class="garage-swipe-inner"
-        ontouchstart="garageSwipeStart(event,this)"
-        ontouchmove="garageSwipeMove(event,this)"
-        ontouchend="garageSwipeEnd(event,this)"
-        onclick="openVehicleToday('${v.id}')">
-        ${cardHtml}
-      </div>
-      <div class="garage-swipe-actions">
-        <button class="garage-swipe-btn garage-swipe-btn-edit" onclick="openEditVehicle('${v.id}')">
-          <i data-lucide="pencil" style="width:16px;height:16px"></i>Modifier
-        </button>
-        <button class="garage-swipe-btn garage-swipe-btn-archive" onclick="garageArchiveVehicle('${v.id}',this)">
-          <i data-lucide="archive" style="width:16px;height:16px"></i>Archiver
-        </button>
-        <button class="garage-swipe-btn garage-swipe-btn-delete" onclick="garageDeleteVehicle('${v.id}',this)">
-          <i data-lucide="trash-2" style="width:16px;height:16px"></i>Supprimer
-        </button>
-      </div>
+  return `<div class="garage-swipe-row fade-up" style="animation-delay:${i*40}ms"
+    data-vehicle-id="${v.id}">
+    <!-- Action bar — derrière la carte, révélée progressivement -->
+    <div class="garage-action-bar" id="gab-${v.id}">
+      <button class="garage-action-btn garage-action-btn-edit" id="gabtn-edit-${v.id}" onclick="openEditVehicle('${v.id}')">
+        <i data-lucide="pencil" style="width:17px;height:17px;color:#fff"></i>
+        <span>Modifier</span>
+      </button>
+      <button class="garage-action-btn garage-action-btn-archive" id="gabtn-arch-${v.id}" onclick="garageArchiveVehicle('${v.id}',this)">
+        <i data-lucide="archive" style="width:17px;height:17px;color:#fff"></i>
+        <span>Archiver</span>
+      </button>
+      <button class="garage-action-btn garage-action-btn-delete" id="gabtn-del-${v.id}" onclick="garageDeleteVehicle('${v.id}',this)">
+        <i data-lucide="trash-2" style="width:17px;height:17px;color:#fff"></i>
+        <span>Supprimer</span>
+      </button>
+    </div>
+    <!-- Carte principale — glisse à gauche -->
+    <div class="garage-swipe-card"
+      ontouchstart="garageSwipeStart(event,this)"
+      ontouchmove="garageSwipeMove(event,this)"
+      ontouchend="garageSwipeEnd(event,this)"
+      onclick="openVehicleToday('${v.id}')">
+      ${cardHtml}
     </div>
   </div>`;
 }
@@ -2561,57 +2590,99 @@ function initAllPullToRefresh() {
 
 
 // ══════════════════════════════════════
-// SWIPE GARAGE — Modifier / Archiver / Supprimer
+// SWIPE GARAGE — Action bar progressive (Apple style)
 // ══════════════════════════════════════
-const GARAGE_ACTIONS_W = 228; // 3 × 76px
+// La carte glisse à gauche, max 72% de sa largeur.
+// L'action bar apparaît derrière, avec apparition staggerée des boutons.
 
-function garageSwipeStart(e, inner) {
-  const outer = inner.parentElement;
-  inner._startX = e.touches[0].clientX;
-  inner._startY = e.touches[0].clientY;
-  inner._baseX  = outer._isOpen ? -GARAGE_ACTIONS_W : 0;
-  inner._lock   = null;
-  outer.style.transition = 'none';
+function _garageGetActionBar(card) {
+  const row = card.closest('.garage-swipe-row');
+  return row ? row.querySelector('.garage-action-bar') : null;
 }
 
-function garageSwipeMove(e, inner) {
-  const outer = inner.parentElement;
-  const dx = e.touches[0].clientX - inner._startX;
-  const dy = e.touches[0].clientY - inner._startY;
-  if (!inner._lock) inner._lock = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-  if (inner._lock === 'y') return;
-  e.preventDefault();
-  const x = Math.max(-GARAGE_ACTIONS_W, Math.min(0, inner._baseX + dx));
-  inner._currentX = x;
-  outer.style.transform = `translateX(${x}px)`;
-}
+function _garageSetSwipeProgress(card, bar, pct) {
+  // pct : 0 (repos) → 1 (ouvert max)
+  const cardW = card.offsetWidth || 340;
+  const maxShift = cardW * 0.72;
+  const x = -pct * maxShift;
 
-function garageSwipeEnd(e, inner) {
-  const outer = inner.parentElement;
-  if (inner._lock === 'y') return;
-  outer.style.transition = 'transform 0.25s cubic-bezier(0.32,0.72,0,1)';
-  if ((inner._currentX || 0) < -GARAGE_ACTIONS_W / 3) {
-    outer.style.transform = `translateX(-${GARAGE_ACTIONS_W}px)`;
-    outer._isOpen = true;
-    // Fermer les autres
-    document.querySelectorAll('.garage-swipe-outer').forEach(other => {
-      if (other !== outer && other._isOpen) {
-        other.style.transition = 'transform 0.25s cubic-bezier(0.32,0.72,0,1)';
-        other.style.transform = 'translateX(0)';
-        other._isOpen = false;
+  // Carte : translate + légère compression + ombre
+  card.style.transform = `translateX(${x}px) scale(${1 - pct * 0.015})`;
+  card.style.borderRadius = `${16 + pct * 6}px`;
+  card.style.boxShadow = pct > 0.05
+    ? `0 ${4 + pct*12}px ${16 + pct*20}px rgba(0,0,0,${0.06 + pct*0.14})`
+    : '';
+
+  // Action bar : fade in à partir de 10%
+  if (bar) {
+    bar.classList.toggle('visible', pct > 0.08);
+    // Apparition staggerée des 3 boutons
+    const btns = bar.querySelectorAll('.garage-action-btn');
+    btns.forEach((btn, i) => {
+      const threshold = [0.15, 0.40, 0.65][i];
+      const show = pct >= threshold;
+      if (show !== btn._shown) {
+        btn._shown = show;
+        btn.style.transitionDelay = show ? `${i * 35}ms` : '0ms';
+        btn.classList.toggle('show', show);
       }
     });
-  } else {
-    outer.style.transform = 'translateX(0)';
-    outer._isOpen = false;
+  }
+}
+
+function garageSwipeStart(e, card) {
+  card._startX  = e.touches[0].clientX;
+  card._startY  = e.touches[0].clientY;
+  card._basePct = card._isOpen ? 1 : 0;
+  card._lock    = null;
+  card._pct     = card._basePct;
+  card.style.transition = 'none';
+  card.style.borderRadius = '';
+}
+
+function garageSwipeMove(e, card) {
+  const dx = e.touches[0].clientX - card._startX;
+  const dy = e.touches[0].clientY - card._startY;
+  if (!card._lock) card._lock = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+  if (card._lock === 'y') return;
+  e.preventDefault();
+  const cardW = card.offsetWidth || 340;
+  const maxShift = cardW * 0.72;
+  const rawPct = card._basePct + (-dx / maxShift);
+  card._pct = Math.max(0, Math.min(1, rawPct));
+  const bar = _garageGetActionBar(card);
+  _garageSetSwipeProgress(card, bar, card._pct);
+}
+
+function garageSwipeEnd(e, card) {
+  if (card._lock === 'y') return;
+  const bar = _garageGetActionBar(card);
+  // Spring release
+  card.style.transition = 'transform 280ms cubic-bezier(0.34,1.2,0.64,1), border-radius 280ms ease, box-shadow 280ms ease';
+
+  const commit = card._pct > 0.38;
+  card._isOpen = commit;
+  _garageSetSwipeProgress(card, bar, commit ? 1 : 0);
+
+  if (commit) {
+    // Fermer les autres
+    document.querySelectorAll('.garage-swipe-card').forEach(other => {
+      if (other !== card && other._isOpen) {
+        other._isOpen = false;
+        other.style.transition = 'transform 280ms cubic-bezier(0.34,1.2,0.64,1), border-radius 280ms ease, box-shadow 280ms ease';
+        _garageSetSwipeProgress(other, _garageGetActionBar(other), 0);
+      }
+    });
   }
 }
 
 function garageCloseAllSwipes() {
-  document.querySelectorAll('.garage-swipe-outer').forEach(outer => {
-    outer.style.transition = 'transform 0.2s ease';
-    outer.style.transform = 'translateX(0)';
-    outer._isOpen = false;
+  document.querySelectorAll('.garage-swipe-card').forEach(card => {
+    if (card._isOpen) {
+      card._isOpen = false;
+      card.style.transition = 'transform 220ms ease, border-radius 220ms ease, box-shadow 220ms ease';
+      _garageSetSwipeProgress(card, _garageGetActionBar(card), 0);
+    }
   });
 }
 

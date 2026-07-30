@@ -1097,6 +1097,11 @@ function switchTab(tab) {
     document.querySelector(`[data-tab="${t}"]`)?.classList.toggle('active', t === tab);
   });
 
+  // Remonter en haut du scroll à chaque changement d'onglet
+  const scrollIds = { today:'today-content', garage:'garage-cards', expenses:'expenses-content', savings:'savings-content', account:'account-content' };
+  const scrollEl = document.getElementById(scrollIds[tab]);
+  if (scrollEl) scrollEl.scrollTop = 0;
+
   if (tab === 'today') renderToday();
   else if (tab === 'garage') renderGarage();
   else if (tab === 'expenses') {

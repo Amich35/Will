@@ -599,6 +599,7 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
    ══════════════════════════════════════ */
 
 // ── Vars globales initialisees dans <head> ──
+var heroAnimatedVehicles = new Set(); // véhicules dont le Hero a déjà été animé cette session
 
 var PERIODS = [
   { key: 'today', label: "Aujourd'hui" },
@@ -1167,6 +1168,12 @@ function animateHero() {
   const el = document.getElementById('hero-amount');
   if (!el) return;
   const target = parseInt(el.dataset.target) || 0;
+  // Animer uniquement la première fois qu'on affiche ce véhicule dans la session
+  if (heroAnimatedVehicles.has(selectedVehicleId)) {
+    el.textContent = target.toLocaleString('fr-FR') + ' €';
+    return;
+  }
+  heroAnimatedVehicles.add(selectedVehicleId);
   const start = performance.now();
   const duration = 800;
   function step(now) {
@@ -1181,7 +1188,13 @@ function animateHero() {
 // ══════════════════════════════════════
 // RENDER — GARAGE
 // ══════════════════════════════════════
+var garageCounterAnimated = false; // animé une seule fois par session
 function animateCounter(el, target, duration) {
+  if (garageCounterAnimated) {
+    el.textContent = target.toLocaleString('fr-FR') + ' €';
+    return;
+  }
+  garageCounterAnimated = true;
   const start = performance.now();
   function step(now) {
     const t = Math.min((now - start) / duration, 1);

@@ -141,11 +141,17 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   opacity:0; pointer-events:none; transition:opacity 0.25s;
 }
 .overlay.show { opacity:1; pointer-events:auto; }
+.sheet-backdrop {
+  position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0);
+  pointer-events:none; transition:background 0.25s ease-out;
+}
+.sheet-backdrop.show { background:rgba(0,0,0,0.35); pointer-events:all; }
 .bottom-sheet {
   position:fixed; bottom:0; left:0; right:0; z-index:201;
-  background:var(--card); border-radius:16px 16px 0 0;
+  background:var(--card); border-radius:22px 22px 0 0;
   padding:12px 20px calc(20px + var(--safe-bottom));
-  transform:translateY(100%); transition:transform 0.3s ease;
+  transform:translateY(100%); transition:transform 0.3s cubic-bezier(0.32,0.72,0,1);
+  box-shadow:0 -4px 32px rgba(0,0,0,0.12);
 }
 .bottom-sheet.show { transform:translateY(0); }
 .sheet-handle {
@@ -453,6 +459,7 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 
 <!-- Overlay période -->
 <div class="overlay" id="period-overlay" onclick="closePeriodSheet()"></div>
+<div class="sheet-backdrop" id="sheet-backdrop" onclick="closeAllSheets()"></div>
 <div class="bottom-sheet" id="period-sheet">
   <div class="sheet-handle"></div>
   <h3 style="font-size:18px;font-weight:700;margin-bottom:20px;text-align:center">Période</h3>
@@ -548,10 +555,13 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 <div class="bottom-sheet" id="expense-sheet">
   <div class="sheet-handle"></div>
   <h3 id="exp-sheet-title" style="font-size:18px;font-weight:700;margin-bottom:20px;text-align:center">Ajouter une dépense</h3>
-  <div style="text-align:center;margin-bottom:20px">
-    <input id="exp-amount" type="number" inputmode="decimal" placeholder="0,00"
-      style="font-size:36px;font-weight:800;text-align:center;border:none;outline:none;width:100%;color:var(--text);background:transparent;letter-spacing:-1px">
-    <p style="font-size:13px;color:var(--text3);margin-top:4px">Montant en euros</p>
+  <div style="text-align:center;margin-bottom:24px">
+    <div style="display:inline-flex;align-items:baseline;gap:4px">
+      <input id="exp-amount" type="number" inputmode="decimal" placeholder="0"
+        style="font-size:48px;font-weight:800;text-align:right;border:none;outline:none;width:160px;color:var(--text);background:transparent;letter-spacing:-2px">
+      <span style="font-size:28px;font-weight:700;color:var(--text2)">€</span>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-top:4px;letter-spacing:0.3px">MONTANT</p>
   </div>
   <div id="exp-cats" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
   <div style="display:flex;gap:12px;margin-bottom:16px">
@@ -1944,7 +1954,7 @@ function openExpenseSheet() {
   selectedExpCat = 'carburant';
   renderExpCats('carburant');
   document.getElementById('expense-overlay').classList.add('show');
-  document.getElementById('expense-sheet').classList.add('show');
+  showSheet('expense-sheet'); setTimeout(() => { const a = document.getElementById('exp-amount'); if(a) a.focus(); }, 300);
   setTimeout(() => document.getElementById('exp-amount').focus(), 300);
 }
 
@@ -1961,7 +1971,7 @@ function openEditExpense(id) {
   selectedExpCat = exp.category;
   renderExpCats(exp.category);
   document.getElementById('expense-overlay').classList.add('show');
-  document.getElementById('expense-sheet').classList.add('show');
+  showSheet('expense-sheet'); setTimeout(() => { const a = document.getElementById('exp-amount'); if(a) a.focus(); }, 300);
   // Close the swipe row
   document.querySelectorAll('.swipe-row-inner').forEach(inner => {
     inner.style.transition = 'transform 0.25s ease';
@@ -1992,9 +2002,31 @@ function selectExpCat(cat) {
   });
 }
 
+function closeAllSheets() {
+  document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('show'));
+  const bd = document.getElementById('sheet-backdrop');
+  if (bd) bd.classList.remove('show');
+}
+
+function showSheet(id) {
+  const bd = document.getElementById('sheet-backdrop');
+  if (bd) bd.classList.add('show');
+  document.getElementById(id).classList.add('show');
+}
+
+function hideSheet(id) {
+  document.getElementById(id).classList.remove('show');
+  // Ne retirer le backdrop que si plus aucun sheet n'est ouvert
+  const anyOpen = Array.from(document.querySelectorAll('.bottom-sheet')).some(s => s.classList.contains('show'));
+  if (!anyOpen) {
+    const bd = document.getElementById('sheet-backdrop');
+    if (bd) bd.classList.remove('show');
+  }
+}
+
 function closeExpenseSheet() {
   document.getElementById('expense-overlay').classList.remove('show');
-  document.getElementById('expense-sheet').classList.remove('show');
+  hideSheet('expense-sheet');
   editingExpenseId = null;
 }
 

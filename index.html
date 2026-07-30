@@ -610,6 +610,56 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   <button class="btn btn-secondary" onclick="closeExpenseSheet()" style="margin-top:10px">Annuler</button>
 </div>
 
+<!-- Carnet entretien — bottom sheet -->
+<div class="bottom-sheet" id="maintenance-sheet" style="max-height:88vh;overflow-y:auto">
+  <div class="sheet-handle"></div>
+  <h3 id="maint-sheet-title" style="font-size:18px;font-weight:700;margin-bottom:16px;text-align:center">Ajouter un entretien</h3>
+  <div style="margin-bottom:16px">
+    <p style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.4px">Type</p>
+    <div id="maint-type-chips" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <div class="input-group" style="flex:1">
+      <label>Date prévue</label>
+      <input id="maint-date" type="date" class="input-field">
+    </div>
+    <div class="input-group" style="flex:1">
+      <label>Km prévu</label>
+      <input id="maint-km" type="number" class="input-field" placeholder="ex. 50000" inputmode="numeric">
+    </div>
+  </div>
+  <div class="input-group" style="margin-bottom:14px">
+    <label>Coût estimé (€, optionnel)</label>
+    <input id="maint-cost" type="number" class="input-field" placeholder="ex. 150" inputmode="decimal">
+  </div>
+  <div class="input-group" style="margin-bottom:20px">
+    <label>Note (optionnelle)</label>
+    <input id="maint-note" class="input-field" placeholder="ex. Vidange + filtre à huile">
+  </div>
+  <button id="maint-save-btn" class="btn btn-primary" onclick="saveMaintenance()">Ajouter</button>
+  <button class="btn btn-secondary" onclick="hideSheet('maintenance-sheet')" style="margin-top:10px">Annuler</button>
+</div>
+
+<!-- Cote véhicule — bottom sheet -->
+<div class="bottom-sheet" id="valuation-sheet">
+  <div class="sheet-handle"></div>
+  <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;text-align:center">Valeur du véhicule</h3>
+  <div style="text-align:center;margin-bottom:24px">
+    <div style="display:inline-flex;align-items:baseline;gap:4px">
+      <input id="val-amount" type="number" inputmode="decimal" placeholder="0"
+        style="font-size:40px;font-weight:800;text-align:right;border:none;outline:none;width:140px;color:var(--text);background:transparent;letter-spacing:-2px">
+      <span style="font-size:24px;font-weight:700;color:var(--text2)">€</span>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-top:4px;letter-spacing:0.3px">VALEUR ESTIMÉE</p>
+  </div>
+  <div class="input-group" style="margin-bottom:20px">
+    <label>Note (optionnelle)</label>
+    <input id="val-note" class="input-field" placeholder="ex. Cote Argus, estimation personnelle…">
+  </div>
+  <button class="btn btn-primary" onclick="saveValuation()">Enregistrer</button>
+  <button class="btn btn-secondary" onclick="hideSheet('valuation-sheet')" style="margin-top:10px">Annuler</button>
+</div>
+
 <!-- Fiche offre — slide-in -->
 <div id="offer-panel" style="position:fixed;inset:0;z-index:300;transform:translateX(100%);transition:transform 0.25s cubic-bezier(0.32,0.72,0,1);background:var(--bg);display:flex;flex-direction:column">
   <div style="display:flex;align-items:center;gap:12px;padding:56px 20px 16px;background:var(--card);box-shadow:var(--shadow)">
@@ -637,7 +687,9 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
    ══════════════════════════════════════ */
 
 // ── Vars globales initialisees dans <head> ──
-var heroAnimatedVehicles = new Set(); // véhicules dont le Hero a déjà été animé cette session
+var heroAnimatedVehicles = new Set();
+var maintenances = [];
+var valuations = []; // véhicules dont le Hero a déjà été animé cette session
 
 var PERIODS = [
   { key: 'today', label: "Aujourd'hui" },
@@ -803,6 +855,12 @@ async function loadUserData() {
 
   const { data: o } = await sb.from('catalog_offers').select('*').eq('active', true).order('category');
   catalogOffers = o || [];
+
+  const { data: m } = await sb.from('maintenances').select('*').eq('user_id', uid).order('date_scheduled', { ascending: false });
+  maintenances = m || [];
+
+  const { data: val } = await sb.from('vehicle_valuations').select('*').eq('user_id', uid).order('valuation_date', { ascending: false });
+  valuations = val || [];
 }
 
 function switchTab(tab) {
@@ -1392,8 +1450,65 @@ function renderGarage() {
     <p style="font-size:14px;font-weight:600;color:var(--text2)">Ajouter un véhicule</p>
   </div>`;
 
+  // Section carnet d'entretien
+  html += renderMaintenanceSection();
+
   container.innerHTML = html;
   lucide.createIcons();
+}
+
+function renderMaintenanceSection() {
+  if (!selectedVehicleId) return '';
+  const vMaints = maintenances.filter(m => m.vehicle_id === selectedVehicleId);
+  const upcoming = vMaints.filter(m => !m.date_done).sort((a,b) => new Date(a.date_scheduled) - new Date(b.date_scheduled));
+  const done = vMaints.filter(m => m.date_done).sort((a,b) => new Date(b.date_done) - new Date(a.date_done));
+  const MAINT_ICONS = { revision:'settings', vidange:'droplets', pneus:'circle', freins:'octagon-alert', ct:'clipboard-check', autre:'wrench' };
+  const MAINT_LABELS_R = { revision:'Révision', vidange:'Vidange', pneus:'Pneus', freins:'Freins', ct:'Contrôle technique', autre:'Autre' };
+
+  function renderRow(m, isDone) {
+    const icon  = MAINT_ICONS[m.type] || 'wrench';
+    const label = MAINT_LABELS_R[m.type] || m.type;
+    const dateStr = isDone
+      ? (m.date_done  ? new Date(m.date_done).toLocaleDateString('fr-FR',  { day:'numeric', month:'short', year:'numeric' }) : '')
+      : (m.date_scheduled ? new Date(m.date_scheduled).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' }) : '');
+    const kmStr   = isDone ? (m.km_done    ? m.km_done.toLocaleString('fr-FR')    + ' km' : '') : (m.km_scheduled ? m.km_scheduled.toLocaleString('fr-FR') + ' km' : '');
+    const costStr = m.cost ? parseFloat(m.cost).toLocaleString('fr-FR', { minimumFractionDigits:0 }) + ' €' : '';
+    const meta    = [dateStr, kmStr, costStr].filter(Boolean).join(' · ');
+    const bg      = isDone ? 'rgba(142,142,147,0.1)' : 'rgba(52,199,89,0.1)';
+    const col     = isDone ? 'var(--text3)' : '#34C759';
+    const labelCol= isDone ? 'var(--text2)' : 'var(--text)';
+    const action  = isDone
+      ? '<i data-lucide="check-circle" style="width:16px;height:16px;color:var(--green);flex-shrink:0"></i>'
+      : '<button onclick="markMaintenanceDone("' + m.id + '")" style="background:none;border:1px solid var(--green);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--green);cursor:pointer">Fait</button>';
+    return '<div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--sep)">'
+      + '<div style="width:36px;height:36px;border-radius:10px;background:' + bg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+      + '<i data-lucide="' + icon + '" style="width:18px;height:18px;color:' + col + '"></i></div>'
+      + '<div style="flex:1">'
+      + '<p style="font-size:14px;font-weight:600;color:' + labelCol + '">' + label + (m.note ? ' · ' + m.note : '') + '</p>'
+      + '<p style="font-size:12px;color:var(--text3);margin-top:2px">' + meta + '</p></div>'
+      + action + '</div>';
+  }
+
+  let html = '<div style="margin-top:24px">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+    + '<p style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">Carnet d\'entretien</p>'
+    + '<button onclick="openMaintenanceSheet()" style="background:none;border:none;font-size:13px;font-weight:600;color:var(--accent);cursor:pointer;display:flex;align-items:center;gap:4px;padding:0">'
+    + '<i data-lucide="plus" style="width:14px;height:14px"></i>Ajouter</button></div>'
+    + '<div class="card" style="padding:0 16px">';
+
+  if (vMaints.length === 0) {
+    html += '<div style="text-align:center;padding:24px 0">'
+      + '<i data-lucide="wrench" style="width:32px;height:32px;color:var(--text3);margin-bottom:10px"></i>'
+      + '<p style="font-size:14px;color:var(--text2)">Aucun entretien enregistré.</p></div>';
+  } else {
+    if (upcoming.length > 0) upcoming.forEach(m => { html += renderRow(m, false); });
+    if (done.length > 0) {
+      html += '<p style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;padding:12px 0 4px">Historique</p>';
+      done.slice(0, 3).forEach(m => { html += renderRow(m, true); });
+    }
+  }
+  html += '</div></div>';
+  return html;
 }
 
 // ══════════════════════════════════════
@@ -2366,6 +2481,114 @@ function startEditName() {
 
   input.addEventListener('blur', saveEditName);
   input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } });
+}
+
+
+// ══════════════════════════════════════
+// CARNET D'ENTRETIEN — Fonctions
+// ══════════════════════════════════════
+var editingMaintenanceId = null;
+var selectedMaintenanceType = 'revision';
+var MAINT_TYPES_LIST = ['revision', 'vidange', 'pneus', 'freins', 'ct', 'autre'];
+var MAINT_LABELS_SHEET = { revision:'Révision', vidange:'Vidange', pneus:'Pneus', freins:'Freins', ct:'Contrôle technique', autre:'Autre' };
+
+function openMaintenanceSheet(id) {
+  editingMaintenanceId = id || null;
+  selectedMaintenanceType = 'revision';
+  const chipsEl = document.getElementById('maint-type-chips');
+  chipsEl.innerHTML = MAINT_TYPES_LIST.map(t =>
+    '<button class="chip ' + (t === selectedMaintenanceType ? 'active' : '') + '" onclick="selectMaintenanceType(\'' + t + '\')">' + MAINT_LABELS_SHEET[t] + '</button>'
+  ).join('');
+  if (id) {
+    const m = maintenances.find(x => x.id === id);
+    if (m) {
+      selectedMaintenanceType = m.type;
+      document.getElementById('maint-date').value = m.date_scheduled || '';
+      document.getElementById('maint-km').value   = m.km_scheduled  || '';
+      document.getElementById('maint-cost').value = m.cost          || '';
+      document.getElementById('maint-note').value = m.note          || '';
+      document.getElementById('maint-sheet-title').textContent = 'Modifier l\'entretien';
+      document.querySelectorAll('#maint-type-chips .chip').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent === MAINT_LABELS_SHEET[m.type]);
+      });
+    }
+  } else {
+    document.getElementById('maint-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('maint-km').value   = '';
+    document.getElementById('maint-cost').value = '';
+    document.getElementById('maint-note').value = '';
+    document.getElementById('maint-sheet-title').textContent = 'Ajouter un entretien';
+  }
+  lucide.createIcons();
+  showSheet('maintenance-sheet');
+}
+
+function selectMaintenanceType(type) {
+  selectedMaintenanceType = type;
+  document.querySelectorAll('#maint-type-chips .chip').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === MAINT_LABELS_SHEET[type]);
+  });
+}
+
+async function saveMaintenance() {
+  const date = document.getElementById('maint-date').value || null;
+  const km   = parseInt(document.getElementById('maint-km').value)    || null;
+  const cost = parseFloat(document.getElementById('maint-cost').value) || null;
+  const note = document.getElementById('maint-note').value.trim()    || null;
+  const btn  = document.getElementById('maint-save-btn');
+  if (!selectedMaintenanceType) return;
+  btn.disabled = true; btn.textContent = 'Enregistrement…';
+  try {
+    let error;
+    if (editingMaintenanceId) {
+      ({ error } = await sb.from('maintenances').update({ type: selectedMaintenanceType, date_scheduled: date, km_scheduled: km, cost, note }).eq('id', editingMaintenanceId));
+    } else {
+      ({ error } = await sb.from('maintenances').insert({ vehicle_id: selectedVehicleId, user_id: currentUser.id, type: selectedMaintenanceType, date_scheduled: date, km_scheduled: km, cost, note }));
+    }
+    if (error) throw error;
+    hideSheet('maintenance-sheet');
+    const { data: m } = await sb.from('maintenances').select('*').eq('user_id', currentUser.id).order('date_scheduled', { ascending: false });
+    maintenances = m || [];
+    renderGarage();
+  } catch(e) { alert('Erreur : ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = 'Ajouter'; }
+}
+
+async function markMaintenanceDone(id) {
+  const today = new Date().toISOString().split('T')[0];
+  const vehicle = vehicles.find(v => v.id === selectedVehicleId);
+  const { error } = await sb.from('maintenances').update({ date_done: today, km_done: vehicle?.mileage || null }).eq('id', id);
+  if (error) { alert('Erreur : ' + error.message); return; }
+  const { data: m } = await sb.from('maintenances').select('*').eq('user_id', currentUser.id).order('date_scheduled', { ascending: false });
+  maintenances = m || [];
+  renderGarage();
+}
+
+// ══════════════════════════════════════
+// COTE VÉHICULE — Fonctions
+// ══════════════════════════════════════
+function openValuationSheet() {
+  document.getElementById('val-amount').value = '';
+  document.getElementById('val-note').value   = '';
+  showSheet('valuation-sheet');
+  setTimeout(() => { const a = document.getElementById('val-amount'); if(a) a.focus(); }, 300);
+}
+
+async function saveValuation() {
+  const value = parseFloat(document.getElementById('val-amount').value);
+  if (!value || value <= 0) {
+    document.getElementById('val-amount').style.borderBottom = '2px solid var(--red)';
+    return;
+  }
+  const note  = document.getElementById('val-note').value.trim() || null;
+  const today = new Date().toISOString().split('T')[0];
+  const { error } = await sb.from('vehicle_valuations').insert({ vehicle_id: selectedVehicleId, user_id: currentUser.id, value, valuation_date: today, note });
+  if (error) { alert('Erreur : ' + error.message); return; }
+  hideSheet('valuation-sheet');
+  const { data: val } = await sb.from('vehicle_valuations').select('*').eq('user_id', currentUser.id).order('valuation_date', { ascending: false });
+  valuations = val || [];
+  heroAnimatedVehicles.delete(selectedVehicleId);
+  renderToday();
 }
 
 async function doLogout() {

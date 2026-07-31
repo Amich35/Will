@@ -1151,6 +1151,10 @@ var selectedRevPeriod = '12m';
 var editingRevenueId = null;
 var selectedRevCat = 'covoiturage';
 
+// Formatage montants fr-FR avec espace insécable pour les milliers
+function fmtAmt(n) { return fmtAmt(n); }
+function fmtAmtDec(n) { return parseFloat(n).toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }); }
+
 var CAT_ICONS = {
   carburant: 'fuel', entretien: 'wrench', assurance: 'shield',
   'péage': 'road', stationnement: 'square-parking', financement: 'landmark',
@@ -1556,7 +1560,7 @@ function renderToday() {
   const circ = 2 * Math.PI * r;
   let offset = 0;
   let arcs = '';
-  const fmtK = n => Math.round(n).toLocaleString('fr-FR'); // "10 000" avec espace insécable fr
+  const fmtK = n => fmtAmt(n); // "10 000" avec espace insécable fr
   catEntries.forEach(([cat, amt]) => {
     const pct = monthTotal > 0 ? amt / monthTotal : 0;
     const dash = pct * circ;
@@ -1613,7 +1617,7 @@ function renderToday() {
         + '<div style="width:8px;height:8px;border-radius:4px;background:' + (CAT_COLORS[cat]||'#ccc') + '"></div>'
         + '<span style="font-size:12px;color:var(--text2)">' + (CAT_LABELS[cat]||cat) + '</span></div>'
         + '<i data-lucide="chevron-right" style="width:11px;height:11px;color:var(--text3)"></i></div>'
-        + '<p style="font-size:17px;font-weight:700;color:var(--text)">' + Math.round(amt) + ' €</p>'
+        + '<p style="font-size:17px;font-weight:700;color:var(--text)">' + fmtAmt(amt) + ' €</p>'
         + '<p style="font-size:11px;color:var(--text3);margin-top:2px">' + pct + '% du mois</p>'
         + '</div>';
     }).join('');
@@ -1675,7 +1679,7 @@ function renderToday() {
       ? `onclick="currentExpenseTab='depenses';selectedExpenseCat='all';selectedPeriod='${periodKey}';currentExpenseTab='depenses';switchTab('expenses')" onmousedown="this.style.opacity='0.6'" onmouseup="this.style.opacity='1'" ontouchstart="this.style.opacity='0.6'" ontouchend="this.style.opacity='1'"`
       : '';
     return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:${hasData?'pointer':'default'};padding:4px 2px;border-radius:8px;transition:opacity 0.15s" ${clickAttr}>
-      <span style="font-size:9px;font-weight:600;color:${isLast?'var(--accent)':'var(--text3)'};min-height:12px">${hasData ? Math.round(m.total)+'€' : ''}</span>
+      <span style="font-size:9px;font-weight:600;color:${isLast?'var(--accent)':'var(--text3)'};min-height:12px">${hasData ? fmtAmt(m.total)+'€' : ''}</span>
       <div class="bar-anim" data-h="${h}" style="width:28px;height:0px;border-radius:6px;background:${isLast ? 'var(--accent)' : '#E5E5EA'};transition:height 0.4s ease-out ${delay}ms"></div>
       <span style="font-size:10px;font-weight:${isLast?600:400};color:${isLast?'var(--accent)':'var(--text3)'}">${m.label}</span>
     </div>`;
@@ -1771,7 +1775,7 @@ function renderToday() {
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:15px;font-weight:600;color:var(--text)">-${parseFloat(e.amount).toFixed(2).replace('.',',')} €</span>
+          <span style="font-size:15px;font-weight:600;color:var(--text)">-${fmtAmtDec(e.amount)} €</span>
           <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--text3)"></i>
         </div>
       </div>`
@@ -1961,7 +1965,7 @@ function generateInsight(vehicle, vExpenses, cats) {
   if (currMonth > 0 && currMonth > ref * 1.15) {
     const ecart = Math.round(currMonth - ref);
     return {
-      text: `Votre budget ce mois (<strong style="color:#fff">${Math.round(currMonth)} €</strong>) est supérieur de <strong style="color:var(--orange)">${ecart} €</strong> à la moyenne pour votre profil véhicule.`,
+      text: `Votre budget ce mois (<strong style="color:#fff">${fmtAmt(currMonth)} €</strong>) est supérieur de <strong style="color:var(--orange)">${fmtAmt(ecart)} €</strong> à la moyenne pour votre profil véhicule.`,
       cta: 'Voir comment réduire',
       ctaAction: "switchTab('savings')"
     };
@@ -1982,7 +1986,7 @@ function generateInsight(vehicle, vExpenses, cats) {
   if (monthTotal > 0) {
     const topCat = Object.entries(cats).sort((a,b) => b[1] - a[1])[0];
     return {
-      text: `Vos dépenses sont bien réparties ce mois. Le poste <strong style="color:#fff">${CAT_LABELS[topCat[0]]}</strong> reste votre principal poste à <strong style="color:#fff">${Math.round(topCat[1])} €</strong>.`,
+      text: `Vos dépenses sont bien réparties ce mois. Le poste <strong style="color:#fff">${CAT_LABELS[topCat[0]]}</strong> reste votre principal poste à <strong style="color:#fff">${fmtAmt(topCat[1])} €</strong>.`,
       cta: 'Voir les économies',
       ctaAction: "switchTab('savings')"
     };
@@ -2011,7 +2015,7 @@ function animateHero() {
   function step(now) {
     const t = Math.min((now - start) / duration, 1);
     const ease = 1 - Math.pow(1 - t, 3);
-    el.textContent = Math.round(ease * target).toLocaleString('fr-FR') + ' €';
+    el.textContent = fmtAmt(ease * target) + ' €';
     if (t < 1) requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
@@ -2031,7 +2035,7 @@ function animateCounter(el, target, duration) {
   function step(now) {
     const t = Math.min((now - start) / duration, 1);
     const ease = 1 - Math.pow(1 - t, 3);
-    el.textContent = Math.round(ease * target).toLocaleString('fr-FR') + ' €';
+    el.textContent = fmtAmt(ease * target) + ' €';
     if (t < 1) requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
@@ -2078,7 +2082,7 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
   const avgMonth  = monthVals.length > 0 ? monthVals.reduce((s,x)=>s+x,0)/monthVals.length : 0;
   const lastVal   = valuations.filter(val=>val.vehicle_id===v.id).sort((a,b)=>new Date(b.valuation_date)-new Date(a.valuation_date))[0];
 
-  const fmt = n => Math.round(n).toLocaleString('fr-FR') + ' €';
+  const fmt = n => fmtAmt(n) + ' €';
 
   // Bloc chiffres commun (fond blanc, collé sous la photo)
   const statsBlock = `
@@ -2194,7 +2198,7 @@ function makeCompactRow(v, mTotal, color, badgeColor, badgeLabel, isLast) {
       <p style="font-size:12px;color:var(--text3);margin-top:1px">${v.year || ''}</p>
     </div>
     <div style="text-align:right">
-      <p style="font-size:15px;font-weight:700;color:var(--text)">${Math.round(mTotal).toLocaleString('fr-FR')} €</p>
+      <p style="font-size:15px;font-weight:700;color:var(--text)">${fmtAmt(mTotal)} €</p>
       <div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;margin-top:2px">
         <div style="width:6px;height:6px;border-radius:50%;background:${badgeColor}"></div>
         <span style="font-size:11px;color:var(--text3)">${badgeLabel}</span>
@@ -2251,7 +2255,7 @@ function renderGarage() {
   // Format : "2 véhicules · 742 € ce mois · 1 action à prévoir"
   const vCount = vehicles.length;
   const vLabel = vCount + ' véhicule' + (vCount > 1 ? 's' : '');
-  const mLabel = Math.round(totalFoyer) + ' € ce mois';
+  const mLabel = fmtAmt(totalFoyer) + ' € ce mois';
   const aLabel = attentionCount > 0
     ? attentionCount + ' action' + (attentionCount > 1 ? 's' : '') + ' à prévoir'
     : 'Tout est à jour';
@@ -2357,7 +2361,7 @@ function renderArchivedVehiclesSection() {
     const totalExp = expenses.filter(e => e.vehicle_id === v.id).reduce((s,e) => s + parseFloat(e.amount), 0);
     const plate = v.plate ? `<span style="font-size:11px;color:rgba(255,255,255,0.6);margin-left:6px">${v.plate}</span>` : '';
     const total = totalExp > 0
-      ? `<span style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.85)">${Math.round(totalExp).toLocaleString('fr-FR')} € au total</span>`
+      ? `<span style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.85)">${fmtAmt(totalExp)} € au total</span>`
       : `<span style="font-size:12px;color:rgba(255,255,255,0.5)">Aucune dépense</span>`;
     return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.08);last-child:border-bottom:none">
       <div style="width:36px;height:36px;border-radius:10px;background:${color}33;display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -2519,7 +2523,7 @@ function renderRevenues() {
   const totalRev = revenues.filter(r => r.vehicle_id === selectedVehicleId).reduce((s,r) => s + parseFloat(r.amount), 0);
   if (summaryEl) {
     summaryEl.textContent = revenues.filter(r => r.vehicle_id === selectedVehicleId).length > 0
-      ? `${Math.round(totalRev).toLocaleString('fr-FR')} € · ${revenues.filter(r=>r.vehicle_id===selectedVehicleId).length} recette${revenues.filter(r=>r.vehicle_id===selectedVehicleId).length>1?'s':''}`
+      ? `${fmtAmt(totalRev)} € · ${revenues.filter(r=>r.vehicle_id===selectedVehicleId).length} recette${revenues.filter(r=>r.vehicle_id===selectedVehicleId).length>1?'s':''}`
       : '';
   }
 
@@ -2557,7 +2561,7 @@ function renderRevenues() {
     const monthTotal = recs.reduce((s,r) => s + parseFloat(r.amount), 0);
     html += `<div style="display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 8px">
       <span style="font-size:13px;font-weight:700;color:var(--text2);text-transform:capitalize">${monthLabel}</span>
-      <span style="font-size:12px;color:var(--green);font-weight:600">+${Math.round(monthTotal)} €</span>
+      <span style="font-size:12px;color:var(--green);font-weight:600">+${fmtAmt(monthTotal)} €</span>
     </div>`;
     recs.forEach(r => {
       const catLabel = REV_LABELS[r.category] || r.category;
@@ -2571,7 +2575,7 @@ function renderRevenues() {
           <p style="font-size:12px;color:var(--text3);margin:2px 0 0">${formatDate(r.date)} · ${catLabel}</p>
         </div>
         <div style="text-align:right;flex-shrink:0">
-          <p style="font-size:15px;font-weight:700;color:var(--green);margin:0">+${parseFloat(r.amount).toFixed(0)} €</p>
+          <p style="font-size:15px;font-weight:700;color:var(--green);margin:0">+${fmtAmt(r.amount)} €</p>
         </div>
       </div>`;
     });
@@ -2669,7 +2673,7 @@ function renderExpenses() {
     const totalAll = allVehicleExp.reduce((s,e) => s + parseFloat(e.amount), 0);
     const periodLabel = periodObj ? periodObj.label : '12 mois';
     if (allVehicleExp.length > 0) {
-      summaryEl.textContent = `${Math.round(totalAll).toLocaleString('fr-FR')} € · ${allVehicleExp.length} dépense${allVehicleExp.length > 1 ? 's' : ''} · ${periodLabel}`;
+      summaryEl.textContent = `${fmtAmt(totalAll)} € · ${allVehicleExp.length} dépense${allVehicleExp.length > 1 ? 's' : ''} · ${periodLabel}`;
     } else {
       summaryEl.textContent = '';
     }
@@ -2718,7 +2722,7 @@ function renderExpenses() {
     }
 
     const countLabel = `${g.expenses.length} dépense${g.expenses.length > 1 ? 's' : ''}`;
-    const totalLabel = `${Math.round(g.total).toLocaleString('fr-FR')} €`;
+    const totalLabel = `${fmtAmt(g.total)} €`;
 
     html += `<div style="padding:20px 4px 8px;margin-top:4px">
       <div style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap">
@@ -3785,7 +3789,7 @@ function openVehicleDetail(vehicleId) {
   const monthVals = Object.values(monthsMap);
   const avgMonth = monthVals.length > 0 ? monthVals.reduce((s,x)=>s+x,0)/monthVals.length : 0;
   const lastVal = valuations.filter(val=>val.vehicle_id===vehicleId).sort((a,b)=>new Date(b.valuation_date)-new Date(a.valuation_date))[0];
-  const fmt = n => Math.round(n).toLocaleString('fr-FR') + ' €';
+  const fmt = n => fmtAmt(n) + ' €';
 
   const photoEl = v.photo_url
     ? `<div style="position:relative;height:240px;background:#111">
@@ -4363,12 +4367,12 @@ function computeSimulation() {
 
   const totalCout = totalFinancement + annual * (simMode === 'comptant' ? 5 : (parseInt(document.getElementById('sim-months')?.value) || 48) / 12);
 
-  document.getElementById('sim-total').textContent   = Math.round(totalCout).toLocaleString('fr-FR') + ' €';
-  document.getElementById('sim-monthly').textContent = Math.round(monthly).toLocaleString('fr-FR') + ' €/mois';
+  document.getElementById('sim-total').textContent   = fmtAmt(totalCout) + ' €';
+  document.getElementById('sim-monthly').textContent = fmtAmt(monthly) + ' €/mois';
 
   const interestRow = document.getElementById('sim-interest-row');
   if (interests > 0) {
-    document.getElementById('sim-interest').textContent = Math.round(interests).toLocaleString('fr-FR') + ' €';
+    document.getElementById('sim-interest').textContent = fmtAmt(interests) + ' €';
     interestRow.style.display = 'flex';
   } else {
     interestRow.style.display = 'none';

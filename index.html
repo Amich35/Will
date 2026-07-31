@@ -155,9 +155,25 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   box-shadow:0 -4px 32px rgba(0,0,0,0.12);
 }
 .bottom-sheet.show { transform:translateY(0); }
+/* Sheets avec liste longue : scrollables en interne */
+#cat-sheet, #rev-cat-sheet, #period-sheet {
+  max-height:82vh;
+  display:flex;
+  flex-direction:column;
+}
+#cat-sheet .sheet-scroll,
+#rev-cat-sheet .sheet-scroll,
+#period-sheet .sheet-scroll {
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  flex:1;
+  overscroll-behavior:contain;
+}
+/* Bloquer le scroll du fond quand un sheet est ouvert */
+body.sheet-open { overflow:hidden; touch-action:none; }
 .sheet-handle {
   width:40px; height:4px; border-radius:2px; background:var(--sep);
-  margin:0 auto 16px;
+  margin:0 auto 16px; flex-shrink:0;
 }
 
 /* ── Animations ── */
@@ -668,27 +684,33 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 <div class="sheet-backdrop" id="sheet-backdrop" onclick="closeAllSheets()"></div>
 <div class="bottom-sheet" id="period-sheet">
   <div class="sheet-handle"></div>
-  <h3 style="font-size:18px;font-weight:700;margin-bottom:20px;text-align:center">Période</h3>
-  <div id="period-options"></div>
-  <button class="btn btn-secondary" onclick="closePeriodSheet()" style="margin-top:16px">Fermer</button>
+  <h3 style="font-size:18px;font-weight:700;margin-bottom:12px;text-align:center;flex-shrink:0">Période</h3>
+  <div class="sheet-scroll">
+    <div id="period-options"></div>
+    <button class="btn btn-secondary" onclick="closePeriodSheet()" style="margin-top:16px">Fermer</button>
+  </div>
 </div>
 
 <!-- Bottom sheet — Catégorie dépenses -->
 <div class="overlay" id="cat-overlay" onclick="closeCatSheet()"></div>
 <div class="bottom-sheet" id="cat-sheet">
   <div class="sheet-handle"></div>
-  <h3 style="font-size:18px;font-weight:700;margin-bottom:20px;text-align:center">Catégorie</h3>
-  <div id="cat-options"></div>
-  <button class="btn btn-secondary" onclick="closeCatSheet()" style="margin-top:16px">Fermer</button>
+  <h3 style="font-size:18px;font-weight:700;margin-bottom:12px;text-align:center;flex-shrink:0">Catégorie</h3>
+  <div class="sheet-scroll">
+    <div id="cat-options"></div>
+    <button class="btn btn-secondary" onclick="closeCatSheet()" style="margin-top:16px">Fermer</button>
+  </div>
 </div>
 
 <!-- Bottom sheet — Catégorie recettes -->
 <div class="overlay" id="rev-cat-overlay" onclick="closeRevCatSheet()"></div>
 <div class="bottom-sheet" id="rev-cat-sheet">
   <div class="sheet-handle"></div>
-  <h3 style="font-size:18px;font-weight:700;margin-bottom:20px;text-align:center">Catégorie</h3>
-  <div id="rev-cat-options"></div>
-  <button class="btn btn-secondary" onclick="closeRevCatSheet()" style="margin-top:16px">Fermer</button>
+  <h3 style="font-size:18px;font-weight:700;margin-bottom:12px;text-align:center;flex-shrink:0">Catégorie</h3>
+  <div class="sheet-scroll">
+    <div id="rev-cat-options"></div>
+    <button class="btn btn-secondary" onclick="closeRevCatSheet()" style="margin-top:16px">Fermer</button>
+  </div>
 </div>
 
 <!-- Overlay + Bottom Sheet — Suppression compte -->
@@ -3235,12 +3257,14 @@ function openPeriodSheet() {
   document.getElementById('period-options').innerHTML = opts;
   document.getElementById('period-overlay').classList.add('show');
   document.getElementById('period-sheet').classList.add('show');
+  document.body.classList.add('sheet-open');
   lucide.createIcons();
 }
 
 function closePeriodSheet() {
   document.getElementById('period-overlay').classList.remove('show');
   document.getElementById('period-sheet').classList.remove('show');
+  document.body.classList.remove('sheet-open');
 }
 
 function setPeriod(key) {
@@ -3263,12 +3287,14 @@ function openCatSheet() {
   document.getElementById('cat-options').innerHTML = opts;
   document.getElementById('cat-overlay').classList.add('show');
   document.getElementById('cat-sheet').classList.add('show');
+  document.body.classList.add('sheet-open');
   lucide.createIcons();
 }
 
 function closeCatSheet() {
   document.getElementById('cat-overlay').classList.remove('show');
   document.getElementById('cat-sheet').classList.remove('show');
+  document.body.classList.remove('sheet-open');
 }
 
 function setCat(key) {
@@ -3294,12 +3320,14 @@ function openRevCatSheet() {
   document.getElementById('rev-cat-options').innerHTML = opts;
   document.getElementById('rev-cat-overlay').classList.add('show');
   document.getElementById('rev-cat-sheet').classList.add('show');
+  document.body.classList.add('sheet-open');
   lucide.createIcons();
 }
 
 function closeRevCatSheet() {
   document.getElementById('rev-cat-overlay').classList.remove('show');
   document.getElementById('rev-cat-sheet').classList.remove('show');
+  document.body.classList.remove('sheet-open');
 }
 
 function setRevCat(key) {

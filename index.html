@@ -1552,10 +1552,11 @@ function renderToday() {
   </div>`;
 
   // ② DONUT
-  const donutSize = 148, cx = donutSize/2, cy = donutSize/2, r = 54, sw = 22;
+  const donutSize = 168, cx = donutSize/2, cy = donutSize/2, r = 62, sw = 22;
   const circ = 2 * Math.PI * r;
   let offset = 0;
   let arcs = '';
+  const fmtK = n => Math.round(n).toLocaleString('fr-FR'); // "10 000" avec espace insécable fr
   catEntries.forEach(([cat, amt]) => {
     const pct = monthTotal > 0 ? amt / monthTotal : 0;
     const dash = pct * circ;
@@ -1574,18 +1575,22 @@ function renderToday() {
         <span style="font-size:13px;color:var(--text2)">${CAT_LABELS[cat]||cat}</span>
       </div>
       <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap">${Math.round(amt)} €</span>
+        <span style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap">${fmtK(amt)} €</span>
         <i data-lucide="chevron-right" style="width:12px;height:12px;color:var(--text3)"></i>
       </div>
     </div>`
   ).join('');
+
+  // Taille de police adaptative pour le centre du donut
+  const centerAmt = Math.round(monthTotal);
+  const centerFontSize = centerAmt >= 10000 ? '18px' : centerAmt >= 1000 ? '20px' : '24px';
 
   html += `<div class="card fade-up" style="animation-delay:30ms">
     <div style="display:flex;align-items:center;gap:20px">
       <div class="donut-container" style="width:${donutSize}px;height:${donutSize}px">
         <svg width="${donutSize}" height="${donutSize}" style="transform:rotate(-90deg);overflow:visible" id="donut-svg-today">${arcs}</svg>
         <div class="donut-center">
-          <span style="font-size:24px;font-weight:700;color:var(--text)">${Math.round(monthTotal)} €</span>
+          <span style="font-size:${centerFontSize};font-weight:700;color:var(--text);white-space:nowrap">${fmtK(monthTotal)} €</span>
           <span style="font-size:11px;color:var(--text2);margin-top:2px">ce mois-ci</span>
         </div>
       </div>

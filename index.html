@@ -2046,50 +2046,35 @@ function openVehicleToday(vehicleId) {
 
 function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored) {
   const loaLine = (v.acquisition_type === 'loa' || v.acquisition_type === 'credit') && v.monthly_payment
-    ? `<p style="font-size:12px;color:rgba(255,255,255,0.65);margin-top:2px">${parseFloat(v.monthly_payment).toLocaleString('fr-FR')} €/mois</p>`
+    ? `<p style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px">${parseFloat(v.monthly_payment).toLocaleString('fr-FR')} € / mois</p>`
     : '';
-  const plateLine = v.plate
-    ? `<span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.55);letter-spacing:1px;text-transform:uppercase">${v.plate}</span>`
-    : (v.year ? `<span style="font-size:12px;color:rgba(255,255,255,0.55)">${v.year} · ${v.fuel || ''}</span>` : '');
+  const yearLine = v.year ? `<span style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.6)">${v.year}</span>` : '';
+  const fuelLine = v.fuel ? `<span style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.6)">${v.fuel}</span>` : '';
+  const meta = [yearLine, fuelLine].filter(Boolean).join('<span style="color:rgba(255,255,255,0.3);margin:0 4px">·</span>');
 
-  // ── Fond : photo ou gradient ──
+  // Zone droite : photo si disponible, sinon icône caméra
   const hasPhoto = v.photo_url && v.photo_url.length > 10;
-  const bgStyle = hasPhoto
-    ? `background:linear-gradient(160deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.6) 100%), url('${v.photo_url}') center/cover no-repeat`
-    : `background:linear-gradient(145deg, ${color}f0 0%, ${color}b0 60%, ${color}d8 100%)`;
+  const photoZone = hasPhoto
+    ? `<div onclick="event.stopPropagation();openPhotoUpload('${v.id}')" style="width:80px;height:52px;border-radius:10px;overflow:hidden;cursor:pointer;flex-shrink:0;border:2px solid rgba(255,255,255,0.3)"><img src="${v.photo_url}" style="width:100%;height:100%;object-fit:cover"></div>`
+    : `<div onclick="event.stopPropagation();openPhotoUpload('${v.id}')" style="width:56px;height:56px;border-radius:12px;background:rgba(255,255,255,0.15);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;flex-shrink:0;border:1.5px dashed rgba(255,255,255,0.35)"><i data-lucide="camera" style="width:20px;height:20px;color:rgba(255,255,255,0.75)"></i><span style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.5px">Photo</span></div>`;
 
-  // ── Initiales (fallback sans photo) ──
-  const initials = (v.brand || '?').charAt(0).toUpperCase();
-  const placeholderEl = hasPhoto ? '' : `
-    <div style="position:absolute;top:0;right:0;bottom:0;width:45%;display:flex;align-items:center;justify-content:flex-end;padding-right:20px;pointer-events:none">
-      <span style="font-size:72px;font-weight:900;color:rgba(255,255,255,0.08);line-height:1;letter-spacing:-4px;user-select:none">${v.brand?.toUpperCase().substring(0,3) || ''}</span>
-    </div>`;
-
-  // ── Bouton photo (crayon discret) ──
-  const editPhotoBtn = `<button onclick="event.stopPropagation();openPhotoUpload('${v.id}')"
-    style="position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:10px;background:rgba(0,0,0,0.3);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
-    <i data-lucide="camera" style="width:14px;height:14px;color:rgba(255,255,255,0.85)"></i>
-  </button>`;
-
-  const cardHtml = `
-  <div class="card fade-up garage-vehicle-card" style="position:relative;overflow:hidden;${bgStyle};padding:20px;cursor:pointer;animation-delay:${i*40}ms;user-select:none;margin-bottom:0;min-height:140px">
-    ${placeholderEl}
-    ${editPhotoBtn}
-    <div style="position:relative;z-index:1">
-      <div style="margin-bottom:auto">
-        <p style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.4px;text-shadow:0 1px 4px rgba(0,0,0,0.3)">${v.brand} ${v.model}</p>
-        <div style="margin-top:3px">${plateLine}</div>
+  const cardHtml = `<div class="card fade-up garage-vehicle-card" style="background:linear-gradient(135deg,${color}dd,${color}99);padding:20px;cursor:pointer;animation-delay:${i*40}ms;user-select:none;margin-bottom:0">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="flex:1">
+        <p style="font-size:19px;font-weight:800;color:#fff;letter-spacing:-0.3px">${v.brand} ${v.model}</p>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:2px">${meta}</div>
         ${loaLine}
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:20px">
-        <div>
-          <p style="font-size:28px;font-weight:800;color:#fff;letter-spacing:-0.8px;text-shadow:0 1px 6px rgba(0,0,0,0.4)">${Math.round(mTotal).toLocaleString('fr-FR')} €</p>
-          <p style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:1px;font-weight:500">ce mois</p>
-        </div>
-        <div style="display:flex;align-items:center;gap:5px;background:rgba(0,0,0,0.28);border-radius:10px;padding:5px 10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
-          <div style="width:7px;height:7px;border-radius:50%;background:${badgeColor};flex-shrink:0;box-shadow:0 0 4px ${badgeColor}"></div>
-          <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.9)">${badgeLabel}</span>
-        </div>
+      ${photoZone}
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:16px">
+      <div>
+        <p style="font-size:24px;font-weight:800;color:#fff;letter-spacing:-0.5px">${Math.round(mTotal).toLocaleString('fr-FR')} €</p>
+        <p style="font-size:12px;color:rgba(255,255,255,0.65);margin-top:1px">ce mois</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;background:rgba(0,0,0,0.18);border-radius:10px;padding:5px 9px">
+        <div style="width:7px;height:7px;border-radius:50%;background:${badgeColor};flex-shrink:0"></div>
+        <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.9)">${badgeLabel}</span>
       </div>
     </div>
   </div>`;

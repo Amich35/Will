@@ -502,24 +502,59 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 
 <div id="app-expenses" class="screen">
   <div style="padding:24px 24px 0">
-    <h1 style="font-size:28px;font-weight:800;letter-spacing:-0.8px">Dépenses</h1>
+    <h1 id="expenses-screen-title" style="font-size:28px;font-weight:800;letter-spacing:-0.8px">Dépenses</h1>
     <div id="expense-pills" style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"></div>
-    <p id="expense-summary" style="font-size:13px;color:var(--text3);margin-top:6px;min-height:18px"></p>
-    <div style="display:flex;align-items:center;gap:8px;margin-top:12px;overflow-x:auto;padding-bottom:2px">
-      <div id="expense-filters" style="display:flex;gap:6px;flex-shrink:0"></div>
-      <button class="chip" id="period-trigger" onclick="openPeriodSheet()" style="flex-shrink:0;white-space:nowrap;display:inline-flex;align-items:center;gap:4px">
-        <span id="period-label">12 mois</span>
-        <i data-lucide="chevron-down" style="width:12px;height:12px"></i>
+
+    <!-- Onglets Dépenses / Recettes -->
+    <div style="display:flex;gap:4px;margin-top:14px;background:rgba(0,0,0,0.05);border-radius:10px;padding:3px">
+      <button id="tab-depenses" onclick="switchExpenseTab('depenses')"
+        style="flex:1;height:34px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s ease;background:#1C1C1E;color:#fff">
+        Dépenses
+      </button>
+      <button id="tab-recettes" onclick="switchExpenseTab('recettes')"
+        style="flex:1;height:34px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s ease;background:transparent;color:#8E8E93">
+        Recettes
       </button>
     </div>
-    <div style="position:relative;margin-top:10px">
-      <i data-lucide="search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text3);pointer-events:none"></i>
-      <input id="expense-search" class="input-field" placeholder="Rechercher une dépense…" oninput="renderExpenses()"
-        style="padding-left:36px;height:38px;font-size:14px;background:rgba(0,0,0,0.04);border-color:transparent">
+
+    <p id="expense-summary" style="font-size:13px;color:var(--text3);margin-top:8px;min-height:18px"></p>
+
+    <!-- Filtres dépenses -->
+    <div id="expenses-filters-wrap">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px;overflow-x:auto;padding-bottom:2px">
+        <div id="expense-filters" style="display:flex;gap:6px;flex-shrink:0"></div>
+        <button class="chip" id="period-trigger" onclick="openPeriodSheet()" style="flex-shrink:0;white-space:nowrap;display:inline-flex;align-items:center;gap:4px">
+          <span id="period-label">12 mois</span>
+          <i data-lucide="chevron-down" style="width:12px;height:12px"></i>
+        </button>
+      </div>
+      <div style="position:relative;margin-top:10px">
+        <i data-lucide="search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text3);pointer-events:none"></i>
+        <input id="expense-search" class="input-field" placeholder="Rechercher une dépense…" oninput="renderExpenses()"
+          style="padding-left:36px;height:38px;font-size:14px;background:rgba(0,0,0,0.04);border-color:transparent">
+      </div>
+    </div>
+
+    <!-- Filtres recettes -->
+    <div id="revenues-filters-wrap" style="display:none">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px;overflow-x:auto;padding-bottom:2px">
+        <div id="revenue-filters" style="display:flex;gap:6px;flex-shrink:0"></div>
+      </div>
+      <div style="position:relative;margin-top:10px">
+        <i data-lucide="search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text3);pointer-events:none"></i>
+        <input id="revenue-search" class="input-field" placeholder="Rechercher une recette…" oninput="renderRevenues()"
+          style="padding-left:36px;height:38px;font-size:14px;background:rgba(0,0,0,0.04);border-color:transparent">
+      </div>
     </div>
   </div>
+
   <div id="expenses-list" class="scroll-content" style="padding-top:12px;position:relative">
     <div class="ptr-indicator" id="ptr-expenses">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    </div>
+  </div>
+  <div id="revenues-list" class="scroll-content" style="padding-top:12px;position:relative;display:none">
+    <div class="ptr-indicator" id="ptr-revenues">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
     </div>
   </div>
@@ -553,7 +588,7 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
     <button class="tab-item" onclick="switchTab('garage')" data-tab="garage">
       <i data-lucide="car"></i><span>Garage</span>
     </button>
-    <button class="tab-plus" onclick="openExpenseSheet()">
+    <button class="tab-plus" onclick="currentExpenseTab==='recettes' && activeTab==='expenses' ? openRevenueSheet() : openExpenseSheet()">
       <i data-lucide="plus"></i>
     </button>
     <button class="tab-item" onclick="switchTab('savings')" data-tab="savings">
@@ -767,6 +802,38 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   <button class="btn btn-secondary" onclick="closeExpenseSheet()" style="margin-top:10px">Annuler</button>
 </div>
 
+<!-- Recette — bottom sheet -->
+<div class="overlay" id="revenue-overlay" onclick="closeRevenueSheet()"></div>
+<div class="bottom-sheet" id="revenue-sheet">
+  <div class="sheet-handle"></div>
+  <h3 id="rev-sheet-title" style="font-size:18px;font-weight:700;margin-bottom:20px;text-align:center">Ajouter une recette</h3>
+  <div style="text-align:center;margin-bottom:24px">
+    <div style="display:inline-flex;align-items:baseline;gap:4px">
+      <input id="rev-amount" type="number" inputmode="decimal" placeholder="0"
+        style="font-size:48px;font-weight:800;text-align:right;border:none;outline:none;width:160px;color:var(--green);background:transparent;letter-spacing:-2px">
+      <span style="font-size:28px;font-weight:700;color:var(--text2)">€</span>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-top:4px;letter-spacing:0.3px">MONTANT</p>
+  </div>
+  <div id="rev-cats" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+  <div style="display:flex;gap:12px;margin-bottom:16px">
+    <div class="input-group" style="flex:1">
+      <label>Date</label>
+      <input id="rev-date" type="date" class="input-field" style="height:44px;font-size:15px;-webkit-appearance:none;appearance:none">
+    </div>
+  </div>
+  <div class="input-group" style="margin-bottom:16px">
+    <label>Libellé (optionnel)</label>
+    <input id="rev-label" class="input-field" placeholder="ex. BlaBlaCar, Getaround...">
+  </div>
+  <div class="input-group" style="margin-bottom:20px">
+    <label>Note (optionnelle)</label>
+    <input id="rev-note" class="input-field" placeholder="ex. Trajet Paris-Lyon">
+  </div>
+  <button id="rev-save-btn" class="btn btn-primary" onclick="saveRevenue()" style="background:var(--green)">Ajouter</button>
+  <button class="btn btn-secondary" onclick="closeRevenueSheet()" style="margin-top:10px">Annuler</button>
+</div>
+
 <!-- Carnet entretien — bottom sheet -->
 <div class="bottom-sheet" id="maintenance-sheet" style="max-height:88vh;overflow-y:auto">
   <div class="sheet-handle"></div>
@@ -929,7 +996,9 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 // ── Vars globales initialisees dans <head> ──
 var heroAnimatedVehicles = new Set();
 var maintenances = [];
-var valuations = []; // véhicules dont le Hero a déjà été animé cette session
+var valuations = [];
+var archivedVehicles = [];
+var revenues = [];
 
 var PERIODS = [
   { key: 'today', label: "Aujourd'hui" },
@@ -940,20 +1009,32 @@ var PERIODS = [
   { key: 'all',   label: 'Tout' }
 ];
 
+var REV_ICONS  = { covoiturage:'users', location:'key', vente:'tag', autre:'plus-circle' };
+var REV_COLORS = { covoiturage:'#007AFF', location:'#FF9500', vente:'#34C759', autre:'#AEAEB2' };
+var REV_LABELS = { covoiturage:'Covoiturage', location:'Location', vente:'Vente', autre:'Autre' };
+
+var currentExpenseTab = 'depenses'; // 'depenses' | 'recettes'
+var selectedRevenueCat = 'all';
+var editingRevenueId = null;
+var selectedRevCat = 'covoiturage';
+
 var CAT_ICONS = {
   carburant: 'fuel', entretien: 'wrench', assurance: 'shield',
   'péage': 'road', stationnement: 'square-parking', financement: 'landmark',
-  lavage: 'sparkles', reparation: 'hammer', ct: 'clipboard-check', achat: 'car', autre: 'file-text'
+  lavage: 'sparkles', reparation: 'hammer', ct: 'clipboard-check',
+  'ext-garantie': 'badge-check', achat: 'car', autre: 'file-text'
 };
 var CAT_COLORS = {
   carburant: '#FF9500', entretien: '#34C759', assurance: '#007AFF',
   'péage': '#5AC8FA', stationnement: '#AF52DE', financement: '#AF52DE',
-  lavage: '#5AC8FA', reparation: '#FF3B30', ct: '#FF9500', achat: '#34C759', autre: '#AEAEB2'
+  lavage: '#5AC8FA', reparation: '#FF3B30', ct: '#FF9500',
+  'ext-garantie': '#5AC8FA', achat: '#34C759', autre: '#AEAEB2'
 };
 var CAT_LABELS = {
   carburant:'Carburant', entretien:'Entretien', assurance:'Assurance',
   'péage':'Péage', stationnement:'Parking', financement:'Financement',
-  lavage:'Lavage', reparation:'Réparation', ct:'Contrôle technique', achat:'Achat véhicule', autre:'Autre'
+  lavage:'Lavage', reparation:'Réparation', ct:'Contrôle technique',
+  'ext-garantie':'Extension garantie', achat:'Achat véhicule', autre:'Autre'
 };
 
 // ══════════════════════════════════════
@@ -1148,6 +1229,12 @@ async function loadUserData() {
   const { data: v } = await sb.from('vehicles').select('*').eq('user_id', uid).eq('archived', false).order('created_at');
   vehicles = v || [];
   if (vehicles.length > 0 && !selectedVehicleId) selectedVehicleId = vehicles[0].id;
+
+  const { data: va } = await sb.from('vehicles').select('*').eq('user_id', uid).eq('archived', true).order('created_at');
+  archivedVehicles = va || [];
+
+  const { data: rev } = await sb.from('revenues').select('*').eq('user_id', uid).order('date', { ascending: false });
+  revenues = rev || [];
 
   const { data: e } = await sb.from('expenses').select('*').eq('user_id', uid).order('date', { ascending: false });
   expenses = e || [];
@@ -1960,6 +2047,11 @@ function renderGarage() {
     <p style="font-size:14px;font-weight:600;color:var(--text2)">Ajouter un véhicule</p>
   </div>`;
 
+  // Section véhicules archivés
+  if (archivedVehicles.length > 0) {
+    html += renderArchivedVehiclesSection();
+  }
+
   // Section carnet d'entretien
   html += renderMaintenanceSection();
 
@@ -1968,6 +2060,38 @@ function renderGarage() {
 
   // Fermer les swipes au scroll
   container.addEventListener('scroll', garageCloseAllSwipes, { passive: true });
+}
+
+function renderArchivedVehiclesSection() {
+  const TYPE_COLORS = { citadine:'#007AFF', suv:'#34C759', berline:'#6E6E73', utilitaire:'#FF9500' };
+  let rows = archivedVehicles.map(v => {
+    const color = TYPE_COLORS[v.vehicle_type] || '#6E6E73';
+    const totalExp = expenses.filter(e => e.vehicle_id === v.id).reduce((s,e) => s + parseFloat(e.amount), 0);
+    const plate = v.plate ? `<span style="font-size:11px;color:rgba(255,255,255,0.6);margin-left:6px">${v.plate}</span>` : '';
+    const total = totalExp > 0
+      ? `<span style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.85)">${Math.round(totalExp).toLocaleString('fr-FR')} € au total</span>`
+      : `<span style="font-size:12px;color:rgba(255,255,255,0.5)">Aucune dépense</span>`;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.08);last-child:border-bottom:none">
+      <div style="width:36px;height:36px;border-radius:10px;background:${color}33;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i data-lucide="car" style="width:18px;height:18px;color:${color}"></i>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.brand} ${v.model}</span>
+          ${plate}
+        </div>
+        <div style="margin-top:2px">${total}</div>
+      </div>
+      <span style="font-size:11px;font-weight:700;color:#8E8E93;background:rgba(142,142,147,0.15);border-radius:6px;padding:3px 8px;flex-shrink:0">Archivé</span>
+    </div>`;
+  }).join('');
+
+  return `<div style="margin-top:24px">
+    <p style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;padding:0 4px 10px">Véhicules archivés</p>
+    <div class="card" style="padding:0;overflow:hidden;box-shadow:none;border:1px solid var(--sep)">
+      ${rows}
+    </div>
+  </div>`;
 }
 
 function renderMaintenanceSection() {
@@ -2048,6 +2172,172 @@ function formatDateFull(dateStr) {
   if (diff === 0) return "Aujourd'hui";
   if (diff === 1) return 'Hier';
   return d.toLocaleDateString('fr-FR', { day:'numeric', month:'long' });
+}
+
+function switchExpenseTab(tab) {
+  currentExpenseTab = tab;
+  const btnDep = document.getElementById('tab-depenses');
+  const btnRec = document.getElementById('tab-recettes');
+  const listDep = document.getElementById('expenses-list');
+  const listRec = document.getElementById('revenues-list');
+  const filtersDep = document.getElementById('expenses-filters-wrap');
+  const filtersRec = document.getElementById('revenues-filters-wrap');
+
+  if (tab === 'depenses') {
+    btnDep.style.background = '#1C1C1E'; btnDep.style.color = '#fff';
+    btnRec.style.background = 'transparent'; btnRec.style.color = '#8E8E93';
+    listDep.style.display = 'block'; listRec.style.display = 'none';
+    filtersDep.style.display = 'block'; filtersRec.style.display = 'none';
+    renderExpenses();
+  } else {
+    btnRec.style.background = '#1C1C1E'; btnRec.style.color = '#fff';
+    btnDep.style.background = 'transparent'; btnDep.style.color = '#8E8E93';
+    listRec.style.display = 'block'; listDep.style.display = 'none';
+    filtersRec.style.display = 'block'; filtersDep.style.display = 'none';
+    renderRevenues();
+  }
+  lucide.createIcons();
+}
+
+function renderRevenues() {
+  // Pills véhicule
+  const pillsEl = document.getElementById('expense-pills');
+  pillsEl.innerHTML = vehicles.map(v =>
+    `<button class="pill ${v.id === selectedVehicleId ? 'active' : 'inactive'}" onclick="selectVehicle('${v.id}');renderRevenues()">${v.brand} ${v.model}</button>`
+  ).join('');
+
+  // Filtres catégorie recettes
+  const filtersEl = document.getElementById('revenue-filters');
+  const allRevCats = ['all', ...Object.keys(REV_LABELS)];
+  filtersEl.innerHTML = allRevCats.map(c => {
+    const label = c === 'all' ? 'Toutes' : REV_LABELS[c];
+    const active = selectedRevenueCat === c ? 'active' : '';
+    const ico = c !== 'all' ? `<i data-lucide="${REV_ICONS[c]}" style="width:13px;height:13px;color:${active ? '#fff' : REV_COLORS[c]}"></i>` : '';
+    return `<button class="chip ${active}" onclick="selectedRevenueCat='${c}';renderRevenues()">${ico}${label}</button>`;
+  }).join('');
+
+  // Filtre
+  let filtered = revenues.filter(r => r.vehicle_id === selectedVehicleId);
+  if (selectedRevenueCat !== 'all') filtered = filtered.filter(r => r.category === selectedRevenueCat);
+  const searchVal = (document.getElementById('revenue-search')?.value || '').toLowerCase().trim();
+  if (searchVal) {
+    filtered = filtered.filter(r =>
+      (r.label || '').toLowerCase().includes(searchVal) ||
+      (r.note || '').toLowerCase().includes(searchVal) ||
+      REV_LABELS[r.category]?.toLowerCase().includes(searchVal)
+    );
+  }
+
+  // Résumé
+  const summaryEl = document.getElementById('expense-summary');
+  const totalRev = revenues.filter(r => r.vehicle_id === selectedVehicleId).reduce((s,r) => s + parseFloat(r.amount), 0);
+  if (summaryEl) {
+    summaryEl.textContent = revenues.filter(r => r.vehicle_id === selectedVehicleId).length > 0
+      ? `${Math.round(totalRev).toLocaleString('fr-FR')} € · ${revenues.filter(r=>r.vehicle_id===selectedVehicleId).length} recette${revenues.filter(r=>r.vehicle_id===selectedVehicleId).length>1?'s':''}`
+      : '';
+  }
+
+  const container = document.getElementById('revenues-list');
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:40px 20px">
+      <i data-lucide="trending-up" style="width:40px;height:40px;color:var(--text3);margin-bottom:12px"></i>
+      <p style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">${searchVal ? 'Aucun résultat' : 'Aucune recette enregistrée.'}</p>
+      <p style="font-size:14px;color:var(--text2);margin-bottom:16px">${searchVal ? `Aucune recette ne correspond à « ${searchVal} ».` : 'Votre véhicule peut aussi générer des revenus : covoiturage, location, revente…'}</p>
+      ${!searchVal ? `<button class="btn btn-primary" style="max-width:240px;margin:0 auto;background:var(--green)" onclick="openRevenueSheet()">Ajouter une recette</button>` : ''}
+    </div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  // Grouper par mois
+  const groups = {};
+  filtered.forEach(r => {
+    const d = new Date(r.date);
+    const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(r);
+  });
+
+  let html = '<div style="padding:0 20px 100px">';
+  Object.entries(groups).sort((a,b) => b[0].localeCompare(a[0])).forEach(([key, recs]) => {
+    const [y, m] = key.split('-');
+    const monthLabel = new Date(y, m-1, 1).toLocaleDateString('fr-FR', { month:'long', year:'numeric' });
+    const monthTotal = recs.reduce((s,r) => s + parseFloat(r.amount), 0);
+    html += `<div style="display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 8px">
+      <span style="font-size:13px;font-weight:700;color:var(--text2);text-transform:capitalize">${monthLabel}</span>
+      <span style="font-size:12px;color:var(--green);font-weight:600">+${Math.round(monthTotal)} €</span>
+    </div>`;
+    recs.forEach(r => {
+      const catLabel = REV_LABELS[r.category] || r.category;
+      const iconBg = REV_COLORS[r.category] ? REV_COLORS[r.category] + '22' : 'rgba(142,142,147,0.12)';
+      html += `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--sep)">
+        <div style="width:40px;height:40px;border-radius:12px;background:${iconBg};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i data-lucide="${REV_ICONS[r.category]||'plus-circle'}" style="width:20px;height:20px;color:${REV_COLORS[r.category]||'#999'}"></i>
+        </div>
+        <div style="flex:1;min-width:0">
+          <p style="font-size:14px;font-weight:500;color:var(--text);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.label || catLabel}</p>
+          <p style="font-size:12px;color:var(--text3);margin:2px 0 0">${formatDate(r.date)} · ${catLabel}</p>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <p style="font-size:15px;font-weight:700;color:var(--green);margin:0">+${parseFloat(r.amount).toFixed(0)} €</p>
+        </div>
+      </div>`;
+    });
+  });
+  html += '</div>';
+  container.innerHTML = html;
+  lucide.createIcons();
+}
+
+function openRevenueSheet() {
+  editingRevenueId = null;
+  document.getElementById('rev-sheet-title').textContent = 'Ajouter une recette';
+  document.getElementById('rev-save-btn').textContent = 'Ajouter';
+  document.getElementById('rev-amount').value = '';
+  document.getElementById('rev-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('rev-label').value = '';
+  document.getElementById('rev-note').value = '';
+  selectedRevCat = 'covoiturage';
+  renderRevCats('covoiturage');
+  document.getElementById('revenue-overlay').classList.add('show');
+  showSheet('revenue-sheet');
+  setTimeout(() => document.getElementById('rev-amount').focus(), 300);
+}
+
+function closeRevenueSheet() {
+  hideSheet('revenue-sheet');
+  document.getElementById('revenue-overlay').classList.remove('show');
+}
+
+function renderRevCats(activeCat) {
+  const el = document.getElementById('rev-cats');
+  el.innerHTML = Object.entries(REV_LABELS).map(([k,v]) => {
+    const active = k === activeCat;
+    return `<button class="chip ${active ? 'active' : ''}" onclick="selectedRevCat='${k}';renderRevCats('${k}')">`
+      + `<i data-lucide="${REV_ICONS[k]}" style="width:13px;height:13px;color:${active ? '#fff' : REV_COLORS[k]}"></i>${v}</button>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+async function saveRevenue() {
+  const amount = parseFloat(document.getElementById('rev-amount').value);
+  const date   = document.getElementById('rev-date').value;
+  if (!amount || amount <= 0 || !date || !selectedVehicleId) return;
+  const label  = document.getElementById('rev-label').value.trim();
+  const note   = document.getElementById('rev-note').value.trim();
+  const payload = { vehicle_id: selectedVehicleId, user_id: currentUser.id, amount, category: selectedRevCat, date, label, note };
+  let error;
+  if (editingRevenueId) {
+    ({ error } = await sb.from('revenues').update(payload).eq('id', editingRevenueId));
+  } else {
+    ({ error } = await sb.from('revenues').insert(payload));
+  }
+  if (error) { alert('Erreur : ' + error.message); return; }
+  closeRevenueSheet();
+  const { data: rev } = await sb.from('revenues').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
+  revenues = rev || [];
+  renderRevenues();
 }
 
 function renderExpenses() {

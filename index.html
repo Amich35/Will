@@ -640,11 +640,6 @@ body.sheet-open { overflow:hidden; touch-action:none; }
 </div>
 
 <div id="app-account" class="screen">
-
-<!-- ══ Fiche véhicule — écran slide-in ══ -->
-<div id="app-vehicle-detail" style="position:fixed;inset:0;background:var(--bg);z-index:150;transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.32,0.72,0,1);overflow-y:auto;-webkit-overflow-scrolling:touch">
-  <div id="vehicle-detail-content"></div>
-</div>
   <div style="padding:24px 24px 0">
     <h1 style="font-size:28px;font-weight:800;letter-spacing:-0.8px">Compte</h1>
   </div>
@@ -704,6 +699,11 @@ body.sheet-open { overflow:hidden; touch-action:none; }
     <div id="rev-cat-options"></div>
     <button class="btn btn-secondary" onclick="closeRevCatSheet()" style="margin-top:16px">Fermer</button>
   </div>
+</div>
+
+<!-- ══ Fiche véhicule — écran slide-in ══ -->
+<div id="app-vehicle-detail" style="position:fixed;inset:0;background:var(--bg);z-index:150;transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.32,0.72,0,1);overflow-y:auto;-webkit-overflow-scrolling:touch">
+  <div id="vehicle-detail-content"></div>
 </div>
 
 <!-- Overlay + Bottom Sheet — Suppression compte -->
@@ -2039,20 +2039,7 @@ function openVehicleToday(vehicleId) {
     track.style.transform = 'translateX(0)';
     return;
   }
-  // Transition expand vers Aujourd'hui
-  const card = swipeCard ? swipeCard.querySelector('.garage-vehicle-card') : null;
-  if (card) {
-    card.style.transition = 'transform 160ms cubic-bezier(0.32,0.72,0,1), opacity 160ms ease-out';
-    card.style.transform = 'scale(1.03)';
-    card.style.opacity = '0.6';
-  }
-  const newIndex = vehicles.findIndex(v => v.id === vehicleId);
-  _prevVehicleIndex = newIndex;
-  selectedVehicleId = vehicleId;
-  setTimeout(() => {
-    switchTab('today');
-    if (card) { card.style.transform = ''; card.style.opacity = ''; }
-  }, 150);
+  openVehicleDetail(vehicleId);
 }
 
 function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored) {

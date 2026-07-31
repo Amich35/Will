@@ -1406,7 +1406,10 @@ async function loadUserData() {
   valuations = val || [];
 }
 
+var activeTab = 'today';
+
 function switchTab(tab) {
+  activeTab = tab;
   const tabs = ['garage','today','expenses','savings','account'];
   tabs.forEach(t => {
     const el = document.getElementById('app-' + t);
@@ -3455,7 +3458,6 @@ async function saveExpense() {
 
   closeExpenseSheet();
   await loadUserData();
-  const activeTab = document.querySelector('.tab-item.active')?.dataset?.tab || 'today';
   switchTab(activeTab);
 }
 
@@ -3688,13 +3690,10 @@ function toggleLoanFields() {
 function selectVehicle(id) {
   if (id === selectedVehicleId) return;
 
-  // Calcul de la direction
   const newIndex = vehicles.findIndex(v => v.id === id);
   const direction = (_prevVehicleIndex < 0 || newIndex > _prevVehicleIndex) ? 'left' : 'right';
   _prevVehicleIndex = newIndex;
 
-  // Conteneur actif selon l'onglet
-  const activeTab = document.querySelector('.tab-item.active')?.dataset?.tab;
   const containerId = activeTab === 'expenses'
     ? (currentExpenseTab === 'recettes' ? 'revenues-list' : 'expenses-list')
     : activeTab === 'savings'  ? 'savings-content'

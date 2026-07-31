@@ -1345,7 +1345,7 @@ function switchTab(tab) {
   });
 
   // Remonter en haut du scroll à chaque changement d'onglet
-  const scrollIds = { today:'today-content', garage:'garage-cards', expenses:'expenses-content', savings:'savings-content', account:'account-content' };
+  const scrollIds = { today:'today-content', garage:'garage-cards', expenses:'expenses-list', savings:'savings-content', account:'account-content' };
   const scrollEl = document.getElementById(scrollIds[tab]);
   if (scrollEl) scrollEl.scrollTop = 0;
 
@@ -3569,10 +3569,11 @@ function selectVehicle(id) {
 
   // Conteneur actif selon l'onglet
   const activeTab = document.querySelector('.tab-item.active')?.dataset?.tab;
-  const containerId = activeTab === 'expenses' ? 'expenses-content'
-                    : activeTab === 'savings'  ? 'savings-content'
-                    : activeTab === 'garage'   ? 'garage-cards'
-                    : 'today-content';
+  const containerId = activeTab === 'expenses'
+    ? (currentExpenseTab === 'recettes' ? 'revenues-list' : 'expenses-list')
+    : activeTab === 'savings'  ? 'savings-content'
+    : activeTab === 'garage'   ? 'garage-cards'
+    : 'today-content';
   const container = document.getElementById(containerId);
 
   // Slide-out du contenu actuel

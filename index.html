@@ -578,7 +578,19 @@ body.sheet-open { overflow:hidden; touch-action:none; }
 
     <!-- Filtres recettes -->
     <div id="revenues-filters-wrap" style="display:none">
-      <!-- Ligne 1 : Catégorie recettes (déroulant) -->
+      <!-- Ligne 1 : Période recettes -->
+      <button onclick="openRevPeriodSheet()"
+        style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 14px;margin-top:8px;background:var(--card);border:1px solid var(--sep);border-radius:12px;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,0.04)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <i data-lucide="calendar" style="width:15px;height:15px;color:var(--green)"></i>
+          <span style="font-size:14px;font-weight:600;color:var(--text)">Période</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span id="rev-period-label" style="font-size:14px;font-weight:600;color:var(--green)">12 mois</span>
+          <i data-lucide="chevron-down" style="width:14px;height:14px;color:var(--green)"></i>
+        </div>
+      </button>
+      <!-- Ligne 2 : Catégorie recettes (déroulant) -->
       <button onclick="openRevCatSheet()"
         style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 14px;margin-top:8px;background:var(--card);border:1px solid var(--sep);border-radius:12px;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,0.04)">
         <div style="display:flex;align-items:center;gap:8px">
@@ -675,6 +687,17 @@ body.sheet-open { overflow:hidden; touch-action:none; }
   <div class="sheet-scroll">
     <div id="cat-options"></div>
     <button class="btn btn-secondary" onclick="closeCatSheet()" style="margin-top:16px">Fermer</button>
+  </div>
+</div>
+
+<!-- Bottom sheet — Période recettes -->
+<div class="overlay" id="rev-period-overlay" onclick="closeRevPeriodSheet()"></div>
+<div class="bottom-sheet" id="rev-period-sheet">
+  <div class="sheet-handle"></div>
+  <h3 style="font-size:18px;font-weight:700;margin-bottom:12px;text-align:center;flex-shrink:0">Période</h3>
+  <div class="sheet-scroll">
+    <div id="rev-period-options"></div>
+    <button class="btn btn-secondary" onclick="closeRevPeriodSheet()" style="margin-top:16px">Fermer</button>
   </div>
 </div>
 
@@ -1122,8 +1145,9 @@ var REV_ICONS  = { covoiturage:'users', location:'key', vente:'tag', autre:'plus
 var REV_COLORS = { covoiturage:'#007AFF', location:'#FF9500', vente:'#34C759', autre:'#AEAEB2' };
 var REV_LABELS = { covoiturage:'Covoiturage', location:'Location', vente:'Vente', autre:'Autre' };
 
-var currentExpenseTab = 'depenses'; // 'depenses' | 'recettes'
+var currentExpenseTab = 'depenses';
 var selectedRevenueCat = 'all';
+var selectedRevPeriod = '12m';
 var editingRevenueId = null;
 var selectedRevCat = 'covoiturage';
 
@@ -2411,14 +2435,16 @@ function renderMaintenanceSection() {
 // RENDER — DÉPENSES
 // ══════════════════════════════════════
 function filterByPeriod(list) {
+  return filterByPeriodCustom(list, selectedPeriod, 'date');
+}
+
+function filterByPeriodCustom(list, period, dateField) {
   const now = new Date();
-  if (selectedPeriod === 'all') return list;
+  if (period === 'all') return list;
   return list.filter(e => {
-    const d = new Date(e.date);
-    if (selectedPeriod === 'today') {
-      return d.toDateString() === now.toDateString();
-    }
-    const days = selectedPeriod === '30d' ? 30 : selectedPeriod === '3m' ? 90 : selectedPeriod === '6m' ? 180 : 365;
+    const d = new Date(e[dateField]);
+    if (period === 'today') return d.toDateString() === now.toDateString();
+    const days = period === '30d' ? 30 : period === '3m' ? 90 : period === '6m' ? 180 : 365;
     const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - days);
     return d >= cutoff;
   });
@@ -2471,6 +2497,8 @@ function renderRevenues() {
 
   // Filtre
   let filtered = revenues.filter(r => r.vehicle_id === selectedVehicleId);
+  // Filtre période
+  filtered = filterByPeriodCustom(filtered, selectedRevPeriod, 'date');
   if (selectedRevenueCat !== 'all') filtered = filtered.filter(r => r.category === selectedRevenueCat);
   const searchVal = (document.getElementById('revenue-search')?.value || '').toLowerCase().trim();
   if (searchVal) {
@@ -3399,6 +3427,36 @@ function closeRevCatSheet() {
   document.getElementById('rev-cat-overlay').classList.remove('show');
   document.getElementById('rev-cat-sheet').classList.remove('show');
   document.body.classList.remove('sheet-open');
+}
+
+function openRevPeriodSheet() {
+  const opts = PERIODS.map(p => {
+    const active = p.key === selectedRevPeriod;
+    return `<div class="period-option ${active ? 'active' : ''}" onclick="setRevPeriod('${p.key}')">
+      <span>${p.label}</span>
+      ${active ? '<i data-lucide="check" style="width:18px;height:18px;color:var(--green)"></i>' : ''}
+    </div>`;
+  }).join('');
+  document.getElementById('rev-period-options').innerHTML = opts;
+  document.getElementById('rev-period-overlay').classList.add('show');
+  document.getElementById('rev-period-sheet').classList.add('show');
+  document.body.classList.add('sheet-open');
+  lucide.createIcons();
+}
+
+function closeRevPeriodSheet() {
+  document.getElementById('rev-period-overlay').classList.remove('show');
+  document.getElementById('rev-period-sheet').classList.remove('show');
+  document.body.classList.remove('sheet-open');
+}
+
+function setRevPeriod(key) {
+  selectedRevPeriod = key;
+  const periodObj = PERIODS.find(p => p.key === key);
+  const el = document.getElementById('rev-period-label');
+  if (el) el.textContent = periodObj ? periodObj.label : '12 mois';
+  closeRevPeriodSheet();
+  renderRevenues();
 }
 
 function setRevCat(key) {

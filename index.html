@@ -327,6 +327,11 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 
   <!-- Page 2 — Inscription / Connexion -->
   <div id="ob-2" class="onboard-page">
+    <div style="width:100%;padding-top:16px">
+      <button onclick="showObPage(1)" style="background:none;border:none;display:flex;align-items:center;gap:4px;color:var(--accent);font-size:15px;font-weight:600;cursor:pointer;padding:4px 0">
+        <i data-lucide="chevron-left" style="width:20px;height:20px"></i> Retour
+      </button>
+    </div>
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;width:100%;max-width:360px;margin:0 auto;padding:0 4px">
       <div style="text-align:center;margin-bottom:32px">
         <div style="width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 6px 20px rgba(0,122,255,0.25)">
@@ -357,6 +362,11 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 
   <!-- Page 3 — Ajout du premier véhicule -->
   <div id="ob-3" class="onboard-page">
+    <div style="width:100%;padding-top:16px">
+      <button id="ob3-back-btn" onclick="ob3Back()" style="background:none;border:none;display:flex;align-items:center;gap:4px;color:var(--accent);font-size:15px;font-weight:600;cursor:pointer;padding:4px 0">
+        <i data-lucide="chevron-left" style="width:20px;height:20px"></i> Retour
+      </button>
+    </div>
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;width:100%;max-width:360px;margin:0 auto">
       <div style="text-align:center;margin-bottom:24px">
         <h2 style="font-size:26px;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px">Votre premier véhicule</h2>
@@ -1138,6 +1148,18 @@ function showVehicleStep2() {
   if (!brand || !model) return;
   document.getElementById('vehicle-step1').style.display = 'none';
   document.getElementById('vehicle-step2').style.display = 'flex';
+}
+
+function ob3Back() {
+  const step2 = document.getElementById('vehicle-step2');
+  if (step2.style.display !== 'none' && step2.style.display !== '') {
+    // Étape 2 → retour étape 1
+    step2.style.display = 'none';
+    document.getElementById('vehicle-step1').style.display = 'flex';
+  } else {
+    // Étape 1 → retour page auth
+    showObPage(2);
+  }
 }
 
 async function saveFirstVehicle() {

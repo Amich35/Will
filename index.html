@@ -228,13 +228,21 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   overflow:hidden; transition:height 0.2s ease; z-index:10;
   pointer-events:none;
 }
-.ptr-indicator svg {
-  width:20px; height:20px; color:var(--text3);
-  transition:transform 0.2s ease-out, opacity 0.15s ease-out;
-  opacity:0;
+.ptr-ring {
+  width:28px; height:28px; opacity:0; transition:opacity 0.15s ease;
 }
-.ptr-indicator.ready svg { color:var(--accent); transform:rotate(180deg); opacity:1; }
-.ptr-indicator.loading svg { opacity:1; animation:ptr-spin 0.8s linear infinite; }
+.ptr-ring circle {
+  fill:none; stroke:var(--sep); stroke-width:2.5;
+  cx:14; cy:14; r:11;
+}
+.ptr-ring .progress {
+  stroke:var(--accent); stroke-linecap:round;
+  stroke-dasharray:0 69.12; transition:stroke-dasharray 0.05s linear;
+  transform-origin:center; transform:rotate(-90deg);
+}
+.ptr-indicator.ready .ptr-ring .progress { stroke-dasharray:69.12 0; }
+.ptr-indicator.loading .ptr-ring { opacity:1; animation:ptr-spin 0.8s linear infinite; }
+.ptr-indicator.loading .ptr-ring .progress { stroke-dasharray:42 27; }
 @keyframes ptr-spin { to { transform:rotate(360deg); } }
 
 /* ── Garage card — élévation au press ── */
@@ -484,7 +492,10 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   </div>
   <div id="garage-cards" class="scroll-content" style="padding-top:8px;position:relative">
     <div class="ptr-indicator" id="ptr-garage">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      <svg class="ptr-ring" viewBox="0 0 28 28">
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--sep)" stroke-width="2.5"/>
+        <circle class="progress" cx="14" cy="14" r="11" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="0 69.12" transform="rotate(-90 14 14)"/>
+      </svg>
     </div>
   </div>
 </div>
@@ -505,7 +516,10 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   </div>
   <div id="today-content" class="scroll-content" style="position:relative">
     <div class="ptr-indicator" id="ptr-today">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      <svg class="ptr-ring" viewBox="0 0 28 28">
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--sep)" stroke-width="2.5"/>
+        <circle class="progress" cx="14" cy="14" r="11" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="0 69.12" transform="rotate(-90 14 14)"/>
+      </svg>
     </div>
   </div>
 </div>
@@ -560,12 +574,18 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 
   <div id="expenses-list" class="scroll-content" style="padding-top:12px;position:relative">
     <div class="ptr-indicator" id="ptr-expenses">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      <svg class="ptr-ring" viewBox="0 0 28 28">
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--sep)" stroke-width="2.5"/>
+        <circle class="progress" cx="14" cy="14" r="11" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="0 69.12" transform="rotate(-90 14 14)"/>
+      </svg>
     </div>
   </div>
   <div id="revenues-list" class="scroll-content" style="padding-top:12px;position:relative;display:none">
     <div class="ptr-indicator" id="ptr-revenues">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      <svg class="ptr-ring" viewBox="0 0 28 28">
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--sep)" stroke-width="2.5"/>
+        <circle class="progress" cx="14" cy="14" r="11" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="0 69.12" transform="rotate(-90 14 14)"/>
+      </svg>
     </div>
   </div>
 </div>
@@ -577,7 +597,10 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   </div>
   <div id="savings-content" class="scroll-content" style="padding-top:12px;position:relative">
     <div class="ptr-indicator" id="ptr-savings">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      <svg class="ptr-ring" viewBox="0 0 28 28">
+        <circle cx="14" cy="14" r="11" fill="none" stroke="var(--sep)" stroke-width="2.5"/>
+        <circle class="progress" cx="14" cy="14" r="11" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="0 69.12" transform="rotate(-90 14 14)"/>
+      </svg>
     </div>
   </div>
 </div>
@@ -1051,12 +1074,34 @@ var CAT_LABELS = {
 // INIT
 // ══════════════════════════════════════
 async function init() {
+  // Vérifier la session existante
   const { data:{ session } } = await sb.auth.getSession();
   if (session) {
     currentUser = session.user;
     await loadUserData();
     showApp();
   }
+
+  // Écouter les changements de session (refresh token, déconnexion, reconnexion)
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+      currentUser = session.user;
+      if (!vehicles.length) {
+        await loadUserData();
+        showApp();
+      }
+    } else if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      vehicles = []; expenses = []; revenues = []; archivedVehicles = [];
+      selectedVehicleId = null;
+      document.getElementById('main-tabs').style.display = 'none';
+      document.getElementById('onboarding').classList.add('active');
+      showObPage(1);
+    } else if (event === 'TOKEN_REFRESHED' && session) {
+      currentUser = session.user;
+    }
+  });
+
   lucide.createIcons();
 }
 
@@ -1066,6 +1111,22 @@ async function init() {
 function showObPage(n) {
   document.querySelectorAll('.onboard-page').forEach(p => p.classList.remove('active'));
   document.getElementById('ob-' + n).classList.add('active');
+  // Titre dynamique page 3
+  if (n === 3) {
+    const hasVehicles = vehicles.length > 0;
+    const titleEl = document.querySelector('#ob-3 h2');
+    const subtitleEl = document.querySelector('#ob-3 p');
+    if (titleEl) titleEl.textContent = hasVehicles ? 'Ajouter un véhicule' : 'Votre premier véhicule';
+    if (subtitleEl) subtitleEl.textContent = hasVehicles ? 'Renseignez les informations de votre véhicule.' : '30 secondes pour commencer votre suivi.';
+    // Reset étapes
+    document.getElementById('vehicle-step1').style.display = 'flex';
+    document.getElementById('vehicle-step2').style.display = 'none';
+    // Vider les champs
+    ['v-brand','v-model','v-year','v-fuel','v-km','v-type'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = el.tagName === 'SELECT' ? el.options[0].value : '';
+    });
+  }
 }
 
 function setAuthMode(mode) {
@@ -1152,12 +1213,16 @@ function showVehicleStep2() {
 
 function ob3Back() {
   const step2 = document.getElementById('vehicle-step2');
+  const comingFromApp = vehicles.length > 0; // déjà des véhicules = on vient de l'app
   if (step2.style.display !== 'none' && step2.style.display !== '') {
     // Étape 2 → retour étape 1
     step2.style.display = 'none';
     document.getElementById('vehicle-step1').style.display = 'flex';
+  } else if (comingFromApp) {
+    // Étape 1, venu de l'app → ferme l'onboarding, retour à l'app
+    document.getElementById('onboarding').classList.remove('active');
   } else {
-    // Étape 1 → retour page auth
+    // Étape 1, venu de l'auth → retour page 2
     showObPage(2);
   }
 }
@@ -1309,7 +1374,7 @@ function renderToday() {
   const pillsEl = document.getElementById('vehicle-pills');
   pillsEl.innerHTML = vehicles.map(v =>
     `<button class="pill ${v.id === selectedVehicleId ? 'active' : 'inactive'}" onclick="selectVehicle('${v.id}')">${v.brand} ${v.model}</button>`
-  ).join('') + `<button style="width:44px;height:44px;border-radius:22px;border:1.5px dashed var(--text3);background:transparent;color:var(--text3);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="showObPage(3);document.getElementById('onboarding').classList.add('active')">+</button>`;
+  ).join('') + `<button style="width:44px;height:44px;border-radius:22px;border:1.5px dashed var(--text3);background:transparent;color:var(--text3);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="openAddVehicle()">+</button>`;
 
   const container = document.getElementById('today-content');
   const vExpenses = expenses.filter(e => e.vehicle_id === selectedVehicleId);
@@ -2903,37 +2968,42 @@ function renderAccount() {
 // ══════════════════════════════════════
 function initPullToRefresh(scrollEl, indicatorEl, onRefresh) {
   let startY = 0, startX = 0, pulling = false, threshold = 200;
+  const CIRC = 2 * Math.PI * 11; // circonférence r=11
+
+  function getProgress() { return indicatorEl.querySelector('.progress'); }
 
   scrollEl.addEventListener('touchstart', e => {
-    // Réinitialiser à chaque toucher
     pulling = false;
     startY = e.touches[0].clientY;
     startX = e.touches[0].clientX;
   }, { passive: true });
 
   scrollEl.addEventListener('touchmove', e => {
-    // Condition stricte : on doit être tout en haut MAINTENANT
     if (scrollEl.scrollTop > 0) { pulling = false; return; }
     const dy = e.touches[0].clientY - startY;
     const dx = Math.abs(e.touches[0].clientX - startX);
-    // Mouvement vers le bas, suffisamment vertical
     if (dy <= 20 || dx > dy * 0.5) { pulling = false; return; }
     pulling = true;
     const progress = Math.min(dy, threshold * 1.5);
     const height = Math.min(progress * 0.4, 48);
     indicatorEl.style.height = height + 'px';
+    // Cercle de progression
+    const ring = indicatorEl.querySelector('.ptr-ring');
+    const prog = getProgress();
+    if (ring) ring.style.opacity = Math.min(progress / (threshold * 0.5), 1);
+    if (prog) {
+      const pct = Math.min(progress / threshold, 1);
+      prog.setAttribute('stroke-dasharray', (pct * CIRC).toFixed(2) + ' ' + ((1 - pct) * CIRC).toFixed(2));
+    }
     indicatorEl.classList.toggle('ready', progress >= threshold);
-    const svg = indicatorEl.querySelector('svg');
-    if (svg) svg.style.opacity = Math.min(progress / threshold, 1);
   }, { passive: true });
 
   scrollEl.addEventListener('touchend', async e => {
-    // Double vérification : pulling actif ET on est bien tout en haut
     if (!pulling || scrollEl.scrollTop > 0) {
       pulling = false;
       indicatorEl.style.height = '0px';
-      const svg = indicatorEl.querySelector('svg');
-      if (svg) svg.style.opacity = '0';
+      const ring = indicatorEl.querySelector('.ptr-ring');
+      if (ring) ring.style.opacity = '0';
       return;
     }
     pulling = false;
@@ -2942,12 +3012,16 @@ function initPullToRefresh(scrollEl, indicatorEl, onRefresh) {
       indicatorEl.classList.remove('ready');
       indicatorEl.classList.add('loading');
       indicatorEl.style.height = '48px';
+      const ring = indicatorEl.querySelector('.ptr-ring');
+      if (ring) ring.style.opacity = '1';
       await onRefresh();
       indicatorEl.classList.remove('loading');
     }
     indicatorEl.style.height = '0px';
-    const svg = indicatorEl.querySelector('svg');
-    if (svg) svg.style.opacity = '0';
+    const ring = indicatorEl.querySelector('.ptr-ring');
+    if (ring) ring.style.opacity = '0';
+    const prog = getProgress();
+    if (prog) prog.setAttribute('stroke-dasharray', '0 ' + CIRC.toFixed(2));
   }, { passive: true });
 }
 

@@ -485,7 +485,7 @@ body.sheet-open { overflow:hidden; touch-action:none; }
       <div>
         <h1 id="garage-hello" style="font-size:28px;font-weight:800;letter-spacing:-0.8px">Bonjour</h1>
       </div>
-      <div id="avatar-garage" style="width:36px;height:36px;border-radius:18px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:600"></div>
+      <div id="avatar-garage" onclick="switchTab('account')" style="width:36px;height:36px;border-radius:18px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:600;cursor:pointer"></div>
     </div>
     <!-- Barre de synthèse -->
     <div id="garage-synth" style="display:flex;align-items:center;gap:6px;margin-top:8px;min-height:20px"></div>
@@ -513,7 +513,7 @@ body.sheet-open { overflow:hidden; touch-action:none; }
       </div>
       <div style="display:flex;align-items:center;gap:12px">
         <i data-lucide="bell" style="width:20px;height:20px;color:var(--text2)"></i>
-        <div id="avatar-today" style="width:36px;height:36px;border-radius:18px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:600"></div>
+        <div id="avatar-today" onclick="switchTab('account')" style="width:36px;height:36px;border-radius:18px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:600;cursor:pointer"></div>
       </div>
     </div>
     <div id="vehicle-pills" style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap"></div>

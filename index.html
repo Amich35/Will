@@ -545,14 +545,24 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 
     <!-- Filtres dépenses -->
     <div id="expenses-filters-wrap">
-      <div style="display:flex;align-items:center;gap:8px;margin-top:4px;overflow-x:auto;padding-bottom:2px">
-        <div id="expense-filters" style="display:flex;gap:6px;flex-shrink:0"></div>
-        <button class="chip" id="period-trigger" onclick="openPeriodSheet()" style="flex-shrink:0;white-space:nowrap;display:inline-flex;align-items:center;gap:4px">
-          <span id="period-label">12 mois</span>
-          <i data-lucide="chevron-down" style="width:12px;height:12px"></i>
-        </button>
+      <!-- Ligne 1 : Période (bien visible, toute la largeur) -->
+      <button id="period-trigger" onclick="openPeriodSheet()"
+        style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 14px;margin-top:4px;background:var(--card);border:1px solid var(--sep);border-radius:12px;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,0.04)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <i data-lucide="calendar" style="width:15px;height:15px;color:var(--accent)"></i>
+          <span style="font-size:14px;font-weight:600;color:var(--text)">Période</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span id="period-label" style="font-size:14px;font-weight:600;color:var(--accent)">12 mois</span>
+          <i data-lucide="chevron-down" style="width:14px;height:14px;color:var(--accent)"></i>
+        </div>
+      </button>
+      <!-- Ligne 2 : Catégories (scroll horizontal) -->
+      <div style="overflow-x:auto;margin-top:8px;padding-bottom:2px;-webkit-overflow-scrolling:touch">
+        <div id="expense-filters" style="display:flex;gap:6px;flex-shrink:0;width:max-content"></div>
       </div>
-      <div style="position:relative;margin-top:10px">
+      <!-- Ligne 3 : Recherche -->
+      <div style="position:relative;margin-top:8px">
         <i data-lucide="search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text3);pointer-events:none"></i>
         <input id="expense-search" class="input-field" placeholder="Rechercher une dépense…" oninput="renderExpenses()"
           style="padding-left:36px;height:38px;font-size:14px;background:rgba(0,0,0,0.04);border-color:transparent">
@@ -561,10 +571,12 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 
     <!-- Filtres recettes -->
     <div id="revenues-filters-wrap" style="display:none">
-      <div style="display:flex;align-items:center;gap:8px;margin-top:4px;overflow-x:auto;padding-bottom:2px">
-        <div id="revenue-filters" style="display:flex;gap:6px;flex-shrink:0"></div>
+      <!-- Ligne 1 : Catégories recettes -->
+      <div style="overflow-x:auto;margin-top:8px;padding-bottom:2px;-webkit-overflow-scrolling:touch">
+        <div id="revenue-filters" style="display:flex;gap:6px;flex-shrink:0;width:max-content"></div>
       </div>
-      <div style="position:relative;margin-top:10px">
+      <!-- Ligne 2 : Recherche -->
+      <div style="position:relative;margin-top:8px">
         <i data-lucide="search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text3);pointer-events:none"></i>
         <input id="revenue-search" class="input-field" placeholder="Rechercher une recette…" oninput="renderRevenues()"
           style="padding-left:36px;height:38px;font-size:14px;background:rgba(0,0,0,0.04);border-color:transparent">

@@ -2269,6 +2269,51 @@ function renderGarage() {
       const svgTemplate = VEHICLE_SVG[v.vehicle_type] || VEHICLE_SVG['default'];
       const svgColored  = svgTemplate.replace(/FILLCOLOR/g, color);
       html += makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored);
+
+      // ── Bloc indicateurs sous la carte (style Base44) ──
+      const totalNet   = vExp.reduce((s,e) => s + parseFloat(e.amount), 0);
+      // Coût mensuel moyen sur les mois avec au moins une dépense
+      const monthsMap = {};
+      vExp.forEach(e => {
+        const d = new Date(e.date);
+        const key = d.getFullYear() + '-' + d.getMonth();
+        monthsMap[key] = (monthsMap[key] || 0) + parseFloat(e.amount);
+      });
+      const monthVals = Object.values(monthsMap);
+      const avgMonth  = monthVals.length > 0 ? monthVals.reduce((s,x) => s+x, 0) / monthVals.length : 0;
+      const avgYear   = avgMonth * 12;
+
+      // Simulation si vente : dernière cote renseignée
+      const lastValuation = valuations.filter(val => val.vehicle_id === v.id).sort((a,b) => new Date(b.valuation_date)-new Date(a.valuation_date))[0];
+      const coteBlock = lastValuation
+        ? (() => {
+            const cote = parseFloat(lastValuation.value);
+            const netAfterSale = Math.max(0, totalNet - cote);
+            const mAfter = monthVals.length > 0 ? netAfterSale / monthVals.length : 0;
+            const yAfter = mAfter * 12;
+            return `<div style="background:rgba(52,199,89,0.08);border:1px solid rgba(52,199,89,0.2);border-radius:10px;padding:10px 14px;margin-top:8px">
+              <p style="font-size:11px;font-weight:600;color:var(--green);margin-bottom:6px">Si vente à la dernière cote (${Math.round(cote).toLocaleString('fr-FR')} €)</p>
+              <div style="display:flex;gap:24px">
+                <div><p style="font-size:14px;font-weight:700;color:var(--text)">${Math.round(mAfter).toLocaleString('fr-FR')} €</p><p style="font-size:11px;color:var(--text3)">/mois</p></div>
+                <div><p style="font-size:14px;font-weight:700;color:var(--text)">${Math.round(yAfter).toLocaleString('fr-FR')} €</p><p style="font-size:11px;color:var(--text3)">/an</p></div>
+              </div>
+            </div>`;
+          })()
+        : '';
+
+      if (totalNet > 0) {
+        html += `<div class="card fade-up" style="padding:14px 16px;margin-top:-4px;border-radius:0 0 16px 16px;border-top:1px solid var(--sep);animation-delay:${i*40+20}ms">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <span style="font-size:12px;color:var(--text2)">Coût total net</span>
+            <span style="font-size:15px;font-weight:700;color:var(--text)">${Math.round(totalNet).toLocaleString('fr-FR')} €</span>
+          </div>
+          <div style="display:flex;gap:24px">
+            <div><p style="font-size:15px;font-weight:700;color:var(--text)">${Math.round(avgMonth).toLocaleString('fr-FR')} €</p><p style="font-size:11px;color:var(--text3);margin-top:1px">/mois (moy.)</p></div>
+            <div><p style="font-size:15px;font-weight:700;color:var(--text)">${Math.round(avgYear).toLocaleString('fr-FR')} €</p><p style="font-size:11px;color:var(--text3);margin-top:1px">/an (estimé)</p></div>
+          </div>
+          ${coteBlock}
+        </div>`;
+      }
     } else {
       if (i === COMPACT_THRESHOLD) {
         html += '<p style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;padding:4px 4px 8px">Autres véhicules</p>'

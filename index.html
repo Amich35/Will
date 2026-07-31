@@ -652,6 +652,42 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
     <label>Immatriculation (optionnelle)</label>
     <input id="veh-plate" class="input-field" placeholder="ex. AB-123-CD" autocapitalize="characters">
   </div>
+
+  <!-- Section identité étendue -->
+  <p style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;margin-top:4px">Détails du véhicule</p>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <div class="input-group" style="flex:1">
+      <label>Finition</label>
+      <input id="veh-trim" class="input-field" placeholder="ex. Business" autocapitalize="words">
+    </div>
+    <div class="input-group" style="flex:1">
+      <label>Couleur</label>
+      <input id="veh-color" class="input-field" placeholder="ex. Noir" autocapitalize="words">
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <div class="input-group" style="flex:1">
+      <label>Moteur</label>
+      <input id="veh-engine" class="input-field" placeholder="ex. 1.5 dCi" autocapitalize="characters">
+    </div>
+    <div class="input-group" style="flex:1">
+      <label>Chevaux fiscaux</label>
+      <input id="veh-fiscal-hp" type="number" class="input-field" placeholder="ex. 6" inputmode="numeric">
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <div class="input-group" style="flex:1">
+      <label>VIN / N° châssis</label>
+      <input id="veh-vin" class="input-field" placeholder="ex. VF1XXXXXXXX" autocapitalize="characters">
+    </div>
+    <div class="input-group" style="flex:1">
+      <label>Km/an estimés</label>
+      <input id="veh-km-year" type="number" class="input-field" placeholder="ex. 15000" inputmode="numeric">
+    </div>
+  </div>
+
+  <!-- Section acquisition -->
+  <p style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;margin-top:4px">Acquisition</p>
   <div class="input-group" style="margin-bottom:14px">
     <label>Mode d'acquisition</label>
     <select id="veh-acq-type" class="input-field" onchange="toggleLoanFields()">
@@ -672,9 +708,25 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
         <input id="veh-loan-months" type="number" class="input-field" placeholder="ex. 48" inputmode="numeric">
       </div>
     </div>
-    <div class="input-group">
-      <label>Prix d'achat (€)</label>
-      <input id="veh-acq-cost" type="number" class="input-field" placeholder="ex. 20000" inputmode="decimal">
+    <div style="display:flex;gap:10px">
+      <div class="input-group" style="flex:1">
+        <label>Prix d'achat (€)</label>
+        <input id="veh-acq-cost" type="number" class="input-field" placeholder="ex. 20000" inputmode="decimal">
+      </div>
+      <div class="input-group" style="flex:1">
+        <label>Apport (€)</label>
+        <input id="veh-deposit" type="number" class="input-field" placeholder="ex. 2000" inputmode="decimal">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="input-group" style="flex:1">
+        <label>Organisme prêteur</label>
+        <input id="veh-lender" class="input-field" placeholder="ex. Capitole Finance" autocapitalize="words">
+      </div>
+      <div class="input-group" style="flex:1">
+        <label>Vendeur</label>
+        <input id="veh-seller" class="input-field" placeholder="ex. Aramisauto" autocapitalize="words">
+      </div>
     </div>
   </div>
   <button id="veh-save-btn" class="btn btn-primary" onclick="saveVehicle()">Ajouter</button>
@@ -890,15 +942,18 @@ var PERIODS = [
 
 var CAT_ICONS = {
   carburant: 'fuel', entretien: 'wrench', assurance: 'shield',
-  'péage': 'road', stationnement: 'square-parking', financement: 'landmark', lavage: 'sparkles', autre: 'file-text'
+  'péage': 'road', stationnement: 'square-parking', financement: 'landmark',
+  lavage: 'sparkles', reparation: 'hammer', ct: 'clipboard-check', achat: 'car', autre: 'file-text'
 };
 var CAT_COLORS = {
   carburant: '#FF9500', entretien: '#34C759', assurance: '#007AFF',
-  'péage': '#5AC8FA', stationnement: '#AF52DE', financement: '#AF52DE', lavage: '#5AC8FA', autre: '#AEAEB2'
+  'péage': '#5AC8FA', stationnement: '#AF52DE', financement: '#AF52DE',
+  lavage: '#5AC8FA', reparation: '#FF3B30', ct: '#FF9500', achat: '#34C759', autre: '#AEAEB2'
 };
 var CAT_LABELS = {
   carburant:'Carburant', entretien:'Entretien', assurance:'Assurance',
-  'péage':'Péage', stationnement:'Parking', financement:'Financement', lavage:'Lavage', autre:'Autre'
+  'péage':'Péage', stationnement:'Parking', financement:'Financement',
+  lavage:'Lavage', reparation:'Réparation', ct:'Contrôle technique', achat:'Achat véhicule', autre:'Autre'
 };
 
 // ══════════════════════════════════════
@@ -2941,6 +2996,15 @@ function openAddVehicle() {
   document.getElementById('veh-type').value = 'citadine';
   document.getElementById('veh-km').value = '';
   document.getElementById('veh-plate').value = '';
+  document.getElementById('veh-trim').value = '';
+  document.getElementById('veh-color').value = '';
+  document.getElementById('veh-engine').value = '';
+  document.getElementById('veh-fiscal-hp').value = '';
+  document.getElementById('veh-vin').value = '';
+  document.getElementById('veh-km-year').value = '';
+  document.getElementById('veh-deposit').value = '';
+  document.getElementById('veh-lender').value = '';
+  document.getElementById('veh-seller').value = '';
   document.getElementById('vehicle-overlay').classList.add('show');
   document.getElementById('vehicle-sheet').classList.add('show');
   setTimeout(() => document.getElementById('veh-brand').focus(), 300);
@@ -2960,12 +3024,24 @@ function openEditVehicle(id) {
   document.getElementById('veh-type').value = v.vehicle_type || 'citadine';
   document.getElementById('veh-km').value = v.mileage || '';
   document.getElementById('veh-plate').value = v.plate || '';
+  document.getElementById('veh-trim').value = v.trim || '';
+  document.getElementById('veh-color').value = v.color || '';
+  document.getElementById('veh-engine').value = v.engine || '';
+  document.getElementById('veh-fiscal-hp').value = v.fiscal_hp || '';
+  document.getElementById('veh-vin').value = v.vin || '';
+  document.getElementById('veh-km-year').value = v.km_per_year || '';
   const acqEl = document.getElementById('veh-acq-type');
   if (acqEl) { acqEl.value = v.acquisition_type || 'comptant'; toggleLoanFields(); }
   const monEl = document.getElementById('veh-monthly');
   if (monEl) monEl.value = v.monthly_payment || '';
   const lmEl = document.getElementById('veh-loan-months');
   if (lmEl) lmEl.value = v.loan_months || '';
+  const depEl = document.getElementById('veh-deposit');
+  if (depEl) depEl.value = v.deposit || '';
+  const lendEl = document.getElementById('veh-lender');
+  if (lendEl) lendEl.value = v.lender || '';
+  const sellEl = document.getElementById('veh-seller');
+  if (sellEl) sellEl.value = v.seller || '';
   const acEl = document.getElementById('veh-acq-cost');
   if (acEl) acEl.value = v.acquisition_cost || '';
   document.getElementById('vehicle-overlay').classList.add('show');
@@ -2995,18 +3071,31 @@ async function saveVehicle() {
   const monthly    = parseFloat(document.getElementById('veh-monthly')?.value)    || null;
   const loanMonths = parseInt(document.getElementById('veh-loan-months')?.value)  || null;
   const acqCost    = parseFloat(document.getElementById('veh-acq-cost')?.value)   || null;
+  const trim      = document.getElementById('veh-trim')?.value.trim()      || null;
+  const color     = document.getElementById('veh-color')?.value.trim()     || null;
+  const engine    = document.getElementById('veh-engine')?.value.trim()    || null;
+  const fiscalHp  = parseInt(document.getElementById('veh-fiscal-hp')?.value)  || null;
+  const vin       = document.getElementById('veh-vin')?.value.trim()       || null;
+  const kmPerYear = parseInt(document.getElementById('veh-km-year')?.value) || null;
+  const deposit   = parseFloat(document.getElementById('veh-deposit')?.value)  || null;
+  const lender    = document.getElementById('veh-lender')?.value.trim()    || null;
+  const seller    = document.getElementById('veh-seller')?.value.trim()    || null;
 
   let error;
   if (editingVehicleId) {
     ({ error } = await sb.from('vehicles').update({
       brand, model, year, fuel, vehicle_type: type, mileage, plate,
-      acquisition_type: acqType, monthly_payment: monthly, loan_months: loanMonths, acquisition_cost: acqCost
+      trim, color, engine, fiscal_hp: fiscalHp, vin, km_per_year: kmPerYear,
+      acquisition_type: acqType, monthly_payment: monthly, loan_months: loanMonths, acquisition_cost: acqCost,
+      deposit, lender, seller
     }).eq('id', editingVehicleId));
   } else {
     ({ error } = await sb.from('vehicles').insert({
       user_id: currentUser.id, brand, model, year, fuel, vehicle_type: type,
       mileage, plate, archived: false,
-      acquisition_type: acqType, monthly_payment: monthly, loan_months: loanMonths, acquisition_cost: acqCost
+      trim, color, engine, fiscal_hp: fiscalHp, vin, km_per_year: kmPerYear,
+      acquisition_type: acqType, monthly_payment: monthly, loan_months: loanMonths, acquisition_cost: acqCost,
+      deposit, lender, seller
     }));
   }
   if (error) { alert('Erreur : ' + error.message); return; }

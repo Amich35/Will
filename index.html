@@ -557,10 +557,19 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
           <i data-lucide="chevron-down" style="width:14px;height:14px;color:var(--accent)"></i>
         </div>
       </button>
-      <!-- Ligne 2 : Catégories (scroll horizontal) -->
-      <div style="overflow-x:auto;margin-top:8px;padding-bottom:2px;-webkit-overflow-scrolling:touch">
-        <div id="expense-filters" style="display:flex;gap:6px;flex-shrink:0;width:max-content"></div>
-      </div>
+      <!-- Ligne 2 : Catégorie (déroulant, même style que Période) -->
+      <button onclick="openCatSheet()"
+        style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 14px;margin-top:8px;background:var(--card);border:1px solid var(--sep);border-radius:12px;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,0.04)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <i data-lucide="tag" style="width:15px;height:15px;color:var(--accent)"></i>
+          <span style="font-size:14px;font-weight:600;color:var(--text)">Catégorie</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span id="cat-label" style="font-size:14px;font-weight:600;color:var(--accent)">Toutes</span>
+          <i data-lucide="chevron-down" style="width:14px;height:14px;color:var(--accent)"></i>
+        </div>
+      </button>
+      <div id="expense-filters" style="display:none"></div>
       <!-- Ligne 3 : Recherche -->
       <div style="position:relative;margin-top:8px">
         <i data-lucide="search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text3);pointer-events:none"></i>
@@ -571,10 +580,19 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
 
     <!-- Filtres recettes -->
     <div id="revenues-filters-wrap" style="display:none">
-      <!-- Ligne 1 : Catégories recettes -->
-      <div style="overflow-x:auto;margin-top:8px;padding-bottom:2px;-webkit-overflow-scrolling:touch">
-        <div id="revenue-filters" style="display:flex;gap:6px;flex-shrink:0;width:max-content"></div>
-      </div>
+      <!-- Ligne 1 : Catégorie recettes (déroulant) -->
+      <button onclick="openRevCatSheet()"
+        style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 14px;margin-top:8px;background:var(--card);border:1px solid var(--sep);border-radius:12px;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,0.04)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <i data-lucide="tag" style="width:15px;height:15px;color:var(--green)"></i>
+          <span style="font-size:14px;font-weight:600;color:var(--text)">Catégorie</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span id="rev-cat-label" style="font-size:14px;font-weight:600;color:var(--green)">Toutes</span>
+          <i data-lucide="chevron-down" style="width:14px;height:14px;color:var(--green)"></i>
+        </div>
+      </button>
+      <div id="revenue-filters" style="display:none"></div>
       <!-- Ligne 2 : Recherche -->
       <div style="position:relative;margin-top:8px">
         <i data-lucide="search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text3);pointer-events:none"></i>
@@ -653,6 +671,24 @@ select.input-field { appearance:none; background-image:url("data:image/svg+xml,%
   <h3 style="font-size:18px;font-weight:700;margin-bottom:20px;text-align:center">Période</h3>
   <div id="period-options"></div>
   <button class="btn btn-secondary" onclick="closePeriodSheet()" style="margin-top:16px">Fermer</button>
+</div>
+
+<!-- Bottom sheet — Catégorie dépenses -->
+<div class="overlay" id="cat-overlay" onclick="closeCatSheet()"></div>
+<div class="bottom-sheet" id="cat-sheet">
+  <div class="sheet-handle"></div>
+  <h3 style="font-size:18px;font-weight:700;margin-bottom:20px;text-align:center">Catégorie</h3>
+  <div id="cat-options"></div>
+  <button class="btn btn-secondary" onclick="closeCatSheet()" style="margin-top:16px">Fermer</button>
+</div>
+
+<!-- Bottom sheet — Catégorie recettes -->
+<div class="overlay" id="rev-cat-overlay" onclick="closeRevCatSheet()"></div>
+<div class="bottom-sheet" id="rev-cat-sheet">
+  <div class="sheet-handle"></div>
+  <h3 style="font-size:18px;font-weight:700;margin-bottom:20px;text-align:center">Catégorie</h3>
+  <div id="rev-cat-options"></div>
+  <button class="btn btn-secondary" onclick="closeRevCatSheet()" style="margin-top:16px">Fermer</button>
 </div>
 
 <!-- Overlay + Bottom Sheet — Suppression compte -->
@@ -2338,15 +2374,9 @@ function renderRevenues() {
     `<button class="pill ${v.id === selectedVehicleId ? 'active' : 'inactive'}" onclick="selectVehicle('${v.id}');renderRevenues()">${v.brand} ${v.model}</button>`
   ).join('');
 
-  // Filtres catégorie recettes
-  const filtersEl = document.getElementById('revenue-filters');
-  const allRevCats = ['all', ...Object.keys(REV_LABELS)];
-  filtersEl.innerHTML = allRevCats.map(c => {
-    const label = c === 'all' ? 'Toutes' : REV_LABELS[c];
-    const active = selectedRevenueCat === c ? 'active' : '';
-    const ico = c !== 'all' ? `<i data-lucide="${REV_ICONS[c]}" style="width:13px;height:13px;color:${active ? '#fff' : REV_COLORS[c]}"></i>` : '';
-    return `<button class="chip ${active}" onclick="selectedRevenueCat='${c}';renderRevenues()">${ico}${label}</button>`;
-  }).join('');
+  // Sync label catégorie recettes
+  const revCatLabelEl = document.getElementById('rev-cat-label');
+  if (revCatLabelEl) revCatLabelEl.textContent = selectedRevenueCat === 'all' ? 'Toutes' : (REV_LABELS[selectedRevenueCat] || selectedRevenueCat);
 
   // Filtre
   let filtered = revenues.filter(r => r.vehicle_id === selectedVehicleId);
@@ -2484,15 +2514,9 @@ function renderExpenses() {
   const periodLabelEl = document.getElementById('period-label');
   if (periodLabelEl) periodLabelEl.textContent = periodObj ? periodObj.label : '12 mois';
 
-  // Filters
-  const filtersEl = document.getElementById('expense-filters');
-  const allCats = ['all', ...Object.keys(CAT_LABELS)];
-  filtersEl.innerHTML = allCats.map(c => {
-    const label = c === 'all' ? 'Toutes' : CAT_LABELS[c];
-    const active = selectedExpenseCat === c ? 'active' : '';
-    const ico = c !== 'all' ? `<i data-lucide="${CAT_ICONS[c]}" style="width:13px;height:13px;color:${active ? '#fff' : CAT_COLORS[c]}"></i>` : '';
-    return `<button class="chip ${active}" onclick="selectedExpenseCat='${c}';renderExpenses()">${ico}${label}</button>`;
-  }).join('');
+  // Sync label catégorie
+  const catLabelEl = document.getElementById('cat-label');
+  if (catLabelEl) catLabelEl.textContent = selectedExpenseCat === 'all' ? 'Toutes' : (CAT_LABELS[selectedExpenseCat] || selectedExpenseCat);
 
   // Filter list
   let filtered = expenses.filter(e => e.vehicle_id === selectedVehicleId);
@@ -3223,6 +3247,68 @@ function setPeriod(key) {
   selectedPeriod = key;
   closePeriodSheet();
   renderExpenses();
+}
+
+function openCatSheet() {
+  const allCats = [['all', 'Toutes', null, null], ...Object.entries(CAT_LABELS).map(([k,v]) => [k, v, CAT_ICONS[k], CAT_COLORS[k]])];
+  const opts = allCats.map(([k, label, icon, color]) => {
+    const active = k === selectedExpenseCat;
+    const ico = icon ? `<div style="width:28px;height:28px;border-radius:8px;background:${color}18;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="${icon}" style="width:14px;height:14px;color:${color}"></i></div>` : `<div style="width:28px;height:28px;border-radius:8px;background:rgba(142,142,147,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="list" style="width:14px;height:14px;color:#8E8E93"></i></div>`;
+    return `<div class="period-option ${active ? 'active' : ''}" onclick="setCat('${k}')" style="display:flex;align-items:center;gap:12px">
+      ${ico}
+      <span style="flex:1">${label}</span>
+      ${active ? '<i data-lucide="check" style="width:18px;height:18px;color:var(--accent)"></i>' : ''}
+    </div>`;
+  }).join('');
+  document.getElementById('cat-options').innerHTML = opts;
+  document.getElementById('cat-overlay').classList.add('show');
+  document.getElementById('cat-sheet').classList.add('show');
+  lucide.createIcons();
+}
+
+function closeCatSheet() {
+  document.getElementById('cat-overlay').classList.remove('show');
+  document.getElementById('cat-sheet').classList.remove('show');
+}
+
+function setCat(key) {
+  selectedExpenseCat = key;
+  const label = key === 'all' ? 'Toutes' : CAT_LABELS[key];
+  const el = document.getElementById('cat-label');
+  if (el) el.textContent = label;
+  closeCatSheet();
+  renderExpenses();
+}
+
+function openRevCatSheet() {
+  const allCats = [['all', 'Toutes', null, null], ...Object.entries(REV_LABELS).map(([k,v]) => [k, v, REV_ICONS[k], REV_COLORS[k]])];
+  const opts = allCats.map(([k, label, icon, color]) => {
+    const active = k === selectedRevenueCat;
+    const ico = icon ? `<div style="width:28px;height:28px;border-radius:8px;background:${color}18;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="${icon}" style="width:14px;height:14px;color:${color}"></i></div>` : `<div style="width:28px;height:28px;border-radius:8px;background:rgba(142,142,147,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="list" style="width:14px;height:14px;color:#8E8E93"></i></div>`;
+    return `<div class="period-option ${active ? 'active' : ''}" onclick="setRevCat('${k}')" style="display:flex;align-items:center;gap:12px">
+      ${ico}
+      <span style="flex:1">${label}</span>
+      ${active ? '<i data-lucide="check" style="width:18px;height:18px;color:var(--green)"></i>' : ''}
+    </div>`;
+  }).join('');
+  document.getElementById('rev-cat-options').innerHTML = opts;
+  document.getElementById('rev-cat-overlay').classList.add('show');
+  document.getElementById('rev-cat-sheet').classList.add('show');
+  lucide.createIcons();
+}
+
+function closeRevCatSheet() {
+  document.getElementById('rev-cat-overlay').classList.remove('show');
+  document.getElementById('rev-cat-sheet').classList.remove('show');
+}
+
+function setRevCat(key) {
+  selectedRevenueCat = key;
+  const label = key === 'all' ? 'Toutes' : REV_LABELS[key];
+  const el = document.getElementById('rev-cat-label');
+  if (el) el.textContent = label;
+  closeRevCatSheet();
+  renderRevenues();
 }
 
 // ══════════════════════════════════════

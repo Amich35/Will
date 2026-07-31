@@ -2060,18 +2060,18 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
         <span style="font-size:16px;font-weight:700;color:var(--text)">${totalNet > 0 ? fmt(totalNet) : '—'}</span>
       </div>
       <!-- Ligne 2 : mensuel / annuel -->
-      <div style="display:flex;gap:0;margin-top:12px;padding-bottom:12px;border-bottom:${lastVal ? '1px solid var(--sep)' : 'none'}">
+      <div style="display:flex;gap:0;margin-top:12px;padding-bottom:${lastVal ? '12px' : '0'};border-bottom:${lastVal ? '1px solid var(--sep)' : 'none'}">
         <div style="flex:1">
           <p style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.4px">${mTotal > 0 ? fmt(mTotal) : '—'}</p>
           <p style="font-size:11px;color:var(--text3);margin-top:2px">ce mois</p>
         </div>
         <div style="flex:1">
           <p style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.4px">${avgMonth > 0 ? fmt(avgMonth) : '—'}</p>
-          <p style="font-size:11px;color:var(--text3);margin-top:2px">/mois (moy.)</p>
+          <p style="font-size:11px;color:var(--text3);margin-top:2px">mois (moy.)</p>
         </div>
         <div style="flex:1">
           <p style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.4px">${avgMonth > 0 ? fmt(avgMonth*12) : '—'}</p>
-          <p style="font-size:11px;color:var(--text3);margin-top:2px">/an (estimé)</p>
+          <p style="font-size:11px;color:var(--text3);margin-top:2px">an (estimé)</p>
         </div>
       </div>
       <!-- Ligne 3 : si vente à la cote -->
@@ -2082,19 +2082,11 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
         return `<div style="margin-top:12px">
           <p style="font-size:11px;font-weight:600;color:var(--green);margin-bottom:8px">Si vente à la dernière cote · ${fmt(cote)}</p>
           <div style="display:flex;gap:0">
-            <div style="flex:1"><p style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.4px">${fmt(m2)}</p><p style="font-size:11px;color:var(--text3);margin-top:2px">/mois</p></div>
-            <div style="flex:1"><p style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.4px">${fmt(m2*12)}</p><p style="font-size:11px;color:var(--text3);margin-top:2px">/an</p></div>
+            <div style="flex:1"><p style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.4px">${fmt(m2)}</p><p style="font-size:11px;color:var(--text3);margin-top:2px">mois</p></div>
+            <div style="flex:1"><p style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.4px">${fmt(m2*12)}</p><p style="font-size:11px;color:var(--text3);margin-top:2px">an</p></div>
           </div>
         </div>`;
       })() : ''}
-      <!-- Badge état + actions -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--sep)">
-        <div style="display:flex;align-items:center;gap:5px">
-          <div style="width:7px;height:7px;border-radius:50%;background:${badgeColor}"></div>
-          <span style="font-size:12px;font-weight:600;color:var(--text2)">${badgeLabel}</span>
-        </div>
-        ${v.plate ? `<span style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.8px">${v.plate}</span>` : ''}
-      </div>
     </div>`;
 
   // ── Variante AVEC photo ──

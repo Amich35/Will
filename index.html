@@ -1152,7 +1152,7 @@ var editingRevenueId = null;
 var selectedRevCat = 'covoiturage';
 
 // Formatage montants fr-FR avec espace insécable pour les milliers
-function fmtAmt(n) { return fmtAmt(n); }
+function fmtAmt(n) { return Math.round(n).toLocaleString('fr-FR'); }
 function fmtAmtDec(n) { return parseFloat(n).toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }); }
 
 var CAT_ICONS = {

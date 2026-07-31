@@ -574,12 +574,6 @@ body.sheet-open { overflow:hidden; touch-action:none; }
         </div>
       </button>
       <div id="expense-filters" style="display:none"></div>
-      <!-- Ligne 3 : Recherche -->
-      <div style="position:relative;margin-top:8px">
-        <i data-lucide="search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text3);pointer-events:none"></i>
-        <input id="expense-search" class="input-field" placeholder="Rechercher une dépense…" oninput="renderExpenses()"
-          style="padding-left:36px;height:38px;font-size:14px;background:rgba(0,0,0,0.04);border-color:transparent">
-      </div>
     </div>
 
     <!-- Filtres recettes -->
@@ -597,12 +591,6 @@ body.sheet-open { overflow:hidden; touch-action:none; }
         </div>
       </button>
       <div id="revenue-filters" style="display:none"></div>
-      <!-- Ligne 2 : Recherche -->
-      <div style="position:relative;margin-top:8px">
-        <i data-lucide="search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text3);pointer-events:none"></i>
-        <input id="revenue-search" class="input-field" placeholder="Rechercher une recette…" oninput="renderRevenues()"
-          style="padding-left:36px;height:38px;font-size:14px;background:rgba(0,0,0,0.04);border-color:transparent">
-      </div>
     </div>
   </div>
 
@@ -2532,7 +2520,12 @@ function renderRevenues() {
     groups[key].push(r);
   });
 
-  let html = '<div style="padding:0 20px 100px">';
+  let html = '<div style="padding:0 20px 100px">'
+    + '<div style="position:relative;margin-bottom:16px">'
+    + '<i data-lucide="search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text3);pointer-events:none"></i>'
+    + '<input id="revenue-search" class="input-field" placeholder="Rechercher une recette…" oninput="renderRevenues()"'
+    + ' style="padding-left:36px;height:38px;font-size:14px;background:rgba(0,0,0,0.04);border-color:transparent">'
+    + '</div>';
   Object.entries(groups).sort((a,b) => b[0].localeCompare(a[0])).forEach(([key, recs]) => {
     const [y, m] = key.split('-');
     const monthLabel = new Date(y, m-1, 1).toLocaleDateString('fr-FR', { month:'long', year:'numeric' });
@@ -2680,7 +2673,12 @@ function renderExpenses() {
     groups[key].total += parseFloat(e.amount);
   });
 
-  let html = '';
+  let html = '<div style="position:relative;margin:0 20px 16px">'
+    + '<i data-lucide="search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text3);pointer-events:none"></i>'
+    + '<input id="expense-search" class="input-field" placeholder="Rechercher une dépense…" oninput="renderExpenses()"'
+    + ' style="padding-left:36px;height:38px;font-size:14px;background:rgba(0,0,0,0.04);border-color:transparent"'
+    + ' value="' + (searchVal || '') + '">'
+    + '</div>';
   Object.values(groups).forEach(g => {
     // Évolution vs mois précédent
     const gDate = g.date;

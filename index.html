@@ -1540,7 +1540,7 @@ function renderToday() {
   const heroVehicle = vehicles.find(v => v.id === selectedVehicleId);
   const heroVehicleName = heroVehicle ? heroVehicle.brand + ' ' + heroVehicle.model : '';
   html += `<div class="card fade-up" style="text-align:center;padding:28px 20px;cursor:pointer;transition:transform 0.15s ease,box-shadow 0.15s ease"
-    onclick="selectedExpenseCat='all';selectedPeriod='12m';switchTab('expenses')"
+    onclick="currentExpenseTab='depenses';selectedExpenseCat='all';selectedPeriod='12m';currentExpenseTab='depenses';switchTab('expenses')"
     onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform=''" ontouchstart="this.style.transform='scale(0.98)'" ontouchend="this.style.transform=''">
     <p style="font-size:13px;font-weight:500;color:var(--text2);margin-bottom:8px">${heroVehicleName}</p>
     <p id="hero-amount" style="font-size:44px;font-weight:800;letter-spacing:-1.5px;color:var(--text)" data-target="${Math.round(annualTotal)}">0 €</p>
@@ -1565,7 +1565,7 @@ function renderToday() {
 
   let legend = catEntries.map(([cat, amt]) =>
     `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--sep);cursor:pointer;transition:opacity 0.15s"
-      onclick="selectedExpenseCat='${cat}';selectedPeriod='12m';switchTab('expenses')"
+      onclick="currentExpenseTab='depenses';selectedExpenseCat='${cat}';selectedPeriod='12m';currentExpenseTab='depenses';switchTab('expenses')"
       onmousedown="this.style.opacity='0.6'" onmouseup="this.style.opacity='1'" ontouchstart="this.style.opacity='0.6'" ontouchend="this.style.opacity='1'">
       <div style="display:flex;align-items:center;gap:8px">
         <div style="width:28px;height:28px;border-radius:8px;background:${CAT_COLORS[cat]||'#ccc'}18;display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -1667,7 +1667,7 @@ function renderToday() {
     const periodKey = monthsAgo === 0 ? '30d' : monthsAgo <= 2 ? '3m' : '6m';
     const hasData = m.total > 0;
     const clickAttr = hasData
-      ? `onclick="selectedExpenseCat='all';selectedPeriod='${periodKey}';switchTab('expenses')" onmousedown="this.style.opacity='0.6'" onmouseup="this.style.opacity='1'" ontouchstart="this.style.opacity='0.6'" ontouchend="this.style.opacity='1'"`
+      ? `onclick="currentExpenseTab='depenses';selectedExpenseCat='all';selectedPeriod='${periodKey}';currentExpenseTab='depenses';switchTab('expenses')" onmousedown="this.style.opacity='0.6'" onmouseup="this.style.opacity='1'" ontouchstart="this.style.opacity='0.6'" ontouchend="this.style.opacity='1'"`
       : '';
     return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:${hasData?'pointer':'default'};padding:4px 2px;border-radius:8px;transition:opacity 0.15s" ${clickAttr}>
       <span style="font-size:9px;font-weight:600;color:${isLast?'var(--accent)':'var(--text3)'};min-height:12px">${hasData ? Math.round(m.total)+'€' : ''}</span>
@@ -1679,7 +1679,7 @@ function renderToday() {
   html += `<div class="card fade-up" style="animation-delay:150ms">
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px">
       <span style="font-size:15px;font-weight:600;color:var(--text)">Évolution</span>
-      <span style="font-size:12px;font-weight:600;color:var(--accent);cursor:pointer" onclick="selectedExpenseCat='all';selectedPeriod='6m';switchTab('expenses')">Tout voir &#8594;</span>
+      <span style="font-size:12px;font-weight:600;color:var(--accent);cursor:pointer" onclick="currentExpenseTab='depenses';selectedExpenseCat='all';selectedPeriod='6m';currentExpenseTab='depenses';switchTab('expenses')">Tout voir &#8594;</span>
     </div>
     <div style="display:flex;align-items:flex-end;gap:10px;height:88px;justify-content:center">${bars}</div>
   </div>`;
@@ -1775,7 +1775,7 @@ function renderToday() {
     html += `<div class="fade-up" style="padding:0 4px;animation-delay:210ms">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <span style="font-size:15px;font-weight:600;color:var(--text)">Dernières dépenses</span>
-        <span style="font-size:13px;color:var(--accent);font-weight:500;cursor:pointer" onclick="switchTab('expenses')">Tout voir →</span>
+        <span style="font-size:13px;color:var(--accent);font-weight:500;cursor:pointer" onclick="currentExpenseTab='depenses';switchTab('expenses')">Tout voir →</span>
       </div>
       ${items}
     </div>`;

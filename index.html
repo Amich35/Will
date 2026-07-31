@@ -640,6 +640,11 @@ body.sheet-open { overflow:hidden; touch-action:none; }
 </div>
 
 <div id="app-account" class="screen">
+
+<!-- ══ Fiche véhicule — écran slide-in ══ -->
+<div id="app-vehicle-detail" style="position:fixed;inset:0;background:var(--bg);z-index:150;transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.32,0.72,0,1);overflow-y:auto;-webkit-overflow-scrolling:touch">
+  <div id="vehicle-detail-content"></div>
+</div>
   <div style="padding:24px 24px 0">
     <h1 style="font-size:28px;font-weight:800;letter-spacing:-0.8px">Compte</h1>
   </div>
@@ -891,6 +896,12 @@ body.sheet-open { overflow:hidden; touch-action:none; }
   </div>
   <button id="exp-save-btn" class="btn btn-primary" onclick="saveExpense()">Ajouter</button>
   <button class="btn btn-secondary" onclick="closeExpenseSheet()" style="margin-top:10px">Annuler</button>
+</div>
+
+<!-- Photo véhicule — bottom sheet -->
+<div class="overlay" id="vehicle-menu-overlay" onclick="closeVehicleMenuSheet()"></div>
+<div class="bottom-sheet" id="vehicle-menu-sheet">
+  <div id="vehicle-menu-content"></div>
 </div>
 
 <!-- Photo véhicule — bottom sheet -->
@@ -2120,7 +2131,7 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
         <img src="${v.photo_url}" style="width:100%;height:100%;object-fit:cover;opacity:0.88">
         <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.75) 0%,rgba(0,0,0,0.1) 55%,transparent 100%)"></div>
         <!-- Bouton 3 points -->
-        <button onclick="event.stopPropagation();openPhotoUpload('${v.id}')" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:10px;background:rgba(0,0,0,0.32);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:2">
+        <button onclick="event.stopPropagation();openVehicleMenu('${v.id}')" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:10px;background:rgba(0,0,0,0.32);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:2">
           <i data-lucide="more-horizontal" style="width:16px;height:16px;color:rgba(255,255,255,0.9)"></i>
         </button>
         <!-- Texte bas photo -->
@@ -2135,7 +2146,7 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
 
     return `<div class="garage-swipe-row fade-up" style="animation-delay:${i*40}ms">
       <div class="garage-swipe-track" ontouchstart="garageSwipeStart(event,this)" ontouchmove="garageSwipeMove(event,this)" ontouchend="garageSwipeEnd(event,this)">
-        <div class="garage-swipe-card" onclick="openVehicleToday('${v.id}')">${cardHtml}</div>
+        <div class="garage-swipe-card" onclick="openVehicleDetail('${v.id}')">${cardHtml}</div>
         <div class="garage-swipe-actions">
           <button class="garage-action-btn garage-action-btn-edit" onclick="openEditVehicle('${v.id}')"><i data-lucide="pencil" style="width:18px;height:18px"></i>Modifier</button>
           <button class="garage-action-btn garage-action-btn-archive" onclick="garageArchiveVehicle('${v.id}',this)"><i data-lucide="archive" style="width:18px;height:18px"></i>Archiver</button>
@@ -2164,7 +2175,7 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
 
   return `<div class="garage-swipe-row fade-up" style="animation-delay:${i*40}ms">
     <div class="garage-swipe-track" ontouchstart="garageSwipeStart(event,this)" ontouchmove="garageSwipeMove(event,this)" ontouchend="garageSwipeEnd(event,this)">
-      <div class="garage-swipe-card" onclick="openVehicleToday('${v.id}')">${cardHtml}</div>
+      <div class="garage-swipe-card" onclick="openVehicleDetail('${v.id}')">${cardHtml}</div>
       <div class="garage-swipe-actions">
         <button class="garage-action-btn garage-action-btn-edit" onclick="openEditVehicle('${v.id}')"><i data-lucide="pencil" style="width:18px;height:18px"></i>Modifier</button>
         <button class="garage-action-btn garage-action-btn-archive" onclick="garageArchiveVehicle('${v.id}',this)"><i data-lucide="archive" style="width:18px;height:18px"></i>Archiver</button>
@@ -3707,6 +3718,186 @@ async function deleteVehiclePhoto() {
   closePhotoSheet();
   renderGarage();
   lucide.createIcons();
+}
+
+var _detailVehicleId = null;
+
+function openVehicleDetail(vehicleId) {
+  _detailVehicleId = vehicleId;
+  const v = vehicles.find(v => v.id === vehicleId);
+  if (!v) return;
+  const vExp = expenses.filter(e => e.vehicle_id === vehicleId);
+  const totalNet = vExp.reduce((s,e) => s + parseFloat(e.amount), 0);
+  const monthsMap = {};
+  vExp.forEach(e => {
+    const d = new Date(e.date);
+    const key = d.getFullYear() + '-' + d.getMonth();
+    monthsMap[key] = (monthsMap[key] || 0) + parseFloat(e.amount);
+  });
+  const monthVals = Object.values(monthsMap);
+  const avgMonth = monthVals.length > 0 ? monthVals.reduce((s,x)=>s+x,0)/monthVals.length : 0;
+  const lastVal = valuations.filter(val=>val.vehicle_id===vehicleId).sort((a,b)=>new Date(b.valuation_date)-new Date(a.valuation_date))[0];
+  const fmt = n => Math.round(n).toLocaleString('fr-FR') + ' €';
+
+  const photoEl = v.photo_url
+    ? `<div style="position:relative;height:240px;background:#111">
+        <img src="${v.photo_url}" style="width:100%;height:100%;object-fit:cover;opacity:0.9">
+        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7) 0%,rgba(0,0,0,0.1) 60%,transparent 100%)"></div>
+        <button onclick="openVehicleMenu('${v.id}')" style="position:absolute;top:52px;right:16px;width:34px;height:34px;border-radius:10px;background:rgba(0,0,0,0.32);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)">
+          <i data-lucide="more-horizontal" style="width:16px;height:16px;color:rgba(255,255,255,0.9)"></i>
+        </button>
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px">
+          <p style="font-size:24px;font-weight:800;color:#fff;letter-spacing:-0.5px">${v.brand} ${v.model}</p>
+          ${v.plate ? `<p style="font-size:13px;color:rgba(255,255,255,0.65);margin-top:2px;font-weight:600;letter-spacing:0.8px">${v.plate}</p>` : ''}
+        </div>
+      </div>`
+    : `<div style="height:120px;background:linear-gradient(135deg,#007AFF,#AF52DE);display:flex;align-items:flex-end;padding:16px;position:relative">
+        <button onclick="openVehicleMenu('${v.id}')" style="position:absolute;top:52px;right:16px;width:34px;height:34px;border-radius:10px;background:rgba(0,0,0,0.2);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer">
+          <i data-lucide="more-horizontal" style="width:16px;height:16px;color:rgba(255,255,255,0.9)"></i>
+        </button>
+        <div>
+          <p style="font-size:24px;font-weight:800;color:#fff;letter-spacing:-0.5px">${v.brand} ${v.model}</p>
+          ${v.plate ? `<p style="font-size:13px;color:rgba(255,255,255,0.65);margin-top:2px;font-weight:600;letter-spacing:0.8px">${v.plate}</p>` : ''}
+        </div>
+      </div>`;
+
+  const field = (label, value) => value
+    ? `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--sep)">
+        <span style="font-size:14px;color:var(--text2)">${label}</span>
+        <span style="font-size:14px;font-weight:600;color:var(--text)">${value}</span>
+       </div>`
+    : '';
+
+  const section = (title, fields) => `
+    <div style="padding:0 16px;margin-bottom:8px">
+      <p style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;padding:16px 0 4px">${title}</p>
+      ${fields}
+    </div>`;
+
+  const coteBlock = lastVal ? (() => {
+    const cote = parseFloat(lastVal.value);
+    const net2 = Math.max(0, totalNet - cote);
+    const m2 = monthVals.length > 0 ? net2/monthVals.length : 0;
+    return `<div style="margin:0 16px 8px;background:rgba(52,199,89,0.08);border:1px solid rgba(52,199,89,0.2);border-radius:12px;padding:14px">
+      <p style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Si vente à la dernière cote · ${fmt(cote)}</p>
+      <div style="display:flex;gap:0">
+        <div style="flex:1"><p style="font-size:18px;font-weight:700;color:var(--text)">${fmt(m2)}</p><p style="font-size:11px;color:var(--text3);margin-top:2px">/mois</p></div>
+        <div style="flex:1"><p style="font-size:18px;font-weight:700;color:var(--text)">${fmt(m2*12)}</p><p style="font-size:11px;color:var(--text3);margin-top:2px">/an</p></div>
+      </div>
+    </div>`;
+  })() : '';
+
+  const html = `
+    <!-- Header nav -->
+    <div style="display:flex;align-items:center;padding:56px 16px 12px;gap:12px;background:var(--bg);position:sticky;top:0;z-index:10;border-bottom:1px solid var(--sep)">
+      <button onclick="closeVehicleDetail()" style="width:36px;height:36px;border-radius:50%;background:var(--sep);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+        <i data-lucide="chevron-left" style="width:20px;height:20px;color:var(--text)"></i>
+      </button>
+      <span style="font-size:17px;font-weight:700;color:var(--text);flex:1">${v.brand} ${v.model}</span>
+    </div>
+
+    ${photoEl}
+
+    <!-- Chiffres clés -->
+    <div style="display:flex;gap:0;padding:16px;border-bottom:1px solid var(--sep)">
+      <div style="flex:1;text-align:center">
+        <p style="font-size:18px;font-weight:800;color:var(--text)">${totalNet > 0 ? fmt(totalNet) : '—'}</p>
+        <p style="font-size:11px;color:var(--text3);margin-top:2px">Coût total net</p>
+      </div>
+      <div style="width:1px;background:var(--sep)"></div>
+      <div style="flex:1;text-align:center">
+        <p style="font-size:18px;font-weight:800;color:var(--text)">${avgMonth > 0 ? fmt(avgMonth) : '—'}</p>
+        <p style="font-size:11px;color:var(--text3);margin-top:2px">/mois (moy.)</p>
+      </div>
+      <div style="width:1px;background:var(--sep)"></div>
+      <div style="flex:1;text-align:center">
+        <p style="font-size:18px;font-weight:800;color:var(--text)">${avgMonth > 0 ? fmt(avgMonth*12) : '—'}</p>
+        <p style="font-size:11px;color:var(--text3);margin-top:2px">/an (estimé)</p>
+      </div>
+    </div>
+
+    ${coteBlock}
+
+    <!-- Fiche d'identité -->
+    ${section('Fiche d\'identité',
+      field('Marque', v.brand) +
+      field('Modèle', v.model) +
+      field('Année', v.year) +
+      field('Carburant', v.fuel ? v.fuel.charAt(0).toUpperCase() + v.fuel.slice(1) : null) +
+      field('Kilométrage', v.mileage ? parseInt(v.mileage).toLocaleString('fr-FR') + ' km' : null) +
+      field('Type', v.vehicle_type ? v.vehicle_type.charAt(0).toUpperCase() + v.vehicle_type.slice(1) : null) +
+      field('Finition', v.trim) +
+      field('Couleur', v.color) +
+      field('Moteur', v.engine) +
+      field('Chevaux fiscaux', v.fiscal_hp ? v.fiscal_hp + ' CV' : null) +
+      field('VIN / N° châssis', v.vin) +
+      field('Immatriculation', v.plate) +
+      field('Km/an estimés', v.km_per_year ? parseInt(v.km_per_year).toLocaleString('fr-FR') + ' km' : null)
+    )}
+
+    <!-- Acquisition -->
+    ${section('Acquisition',
+      field('Mode', v.acquisition_type ? ({comptant:'Comptant',credit:'Crédit',loa:'LOA',lld:'LLD'}[v.acquisition_type] || v.acquisition_type) : null) +
+      field('Prix d\'achat', v.acquisition_cost ? fmt(v.acquisition_cost) : null) +
+      field('Apport', v.deposit ? fmt(v.deposit) : null) +
+      field('Mensualité', v.monthly_payment ? fmt(v.monthly_payment) + '/mois' : null) +
+      field('Durée', v.loan_months ? v.loan_months + ' mois' : null) +
+      field('Organisme prêteur', v.lender) +
+      field('Vendeur', v.seller)
+    )}
+
+    <!-- Bouton Voir Aujourd'hui -->
+    <div style="padding:16px 16px 48px">
+      <button class="btn btn-primary" onclick="closeVehicleDetail();selectedVehicleId='${v.id}';switchTab('today')">
+        Voir Aujourd'hui pour ce véhicule
+      </button>
+    </div>`;
+
+  document.getElementById('vehicle-detail-content').innerHTML = html;
+  document.getElementById('app-vehicle-detail').style.transform = 'translateX(0)';
+  lucide.createIcons();
+}
+
+function closeVehicleDetail() {
+  document.getElementById('app-vehicle-detail').style.transform = 'translateX(100%)';
+  _detailVehicleId = null;
+}
+
+function openVehicleMenu(vehicleId) {
+  const v = vehicles.find(v => v.id === vehicleId);
+  if (!v) return;
+  // Réutiliser le sheet d'options existant (vehicle-sheet) pour modifier
+  // Mais d'abord : menu contextuel simple avec les 3 actions
+  const menuHtml = `
+    <div class="sheet-handle"></div>
+    <h3 style="font-size:17px;font-weight:700;margin-bottom:16px;text-align:center">${v.brand} ${v.model}</h3>
+    <button class="btn btn-secondary" style="margin-bottom:10px;display:flex;align-items:center;gap:10px;justify-content:flex-start;padding-left:16px" onclick="closeVehicleMenuSheet();openPhotoUpload('${vehicleId}')">
+      <i data-lucide="camera" style="width:18px;height:18px;color:var(--accent)"></i>
+      <span>Changer la photo</span>
+    </button>
+    <button class="btn btn-secondary" style="margin-bottom:10px;display:flex;align-items:center;gap:10px;justify-content:flex-start;padding-left:16px" onclick="closeVehicleMenuSheet();openEditVehicle('${vehicleId}')">
+      <i data-lucide="pencil" style="width:18px;height:18px;color:var(--accent)"></i>
+      <span>Modifier la fiche</span>
+    </button>
+    <button class="btn btn-secondary" style="margin-bottom:10px;display:flex;align-items:center;gap:10px;justify-content:flex-start;padding-left:16px" onclick="closeVehicleMenuSheet();garageArchiveVehicle('${vehicleId}',this)">
+      <i data-lucide="archive" style="width:18px;height:18px;color:var(--orange)"></i>
+      <span style="color:var(--orange)">Archiver</span>
+    </button>
+    <button class="btn btn-secondary" style="margin-bottom:16px;display:flex;align-items:center;gap:10px;justify-content:flex-start;padding-left:16px" onclick="closeVehicleMenuSheet();garageDeleteVehicle('${vehicleId}',this)">
+      <i data-lucide="trash-2" style="width:18px;height:18px;color:var(--red)"></i>
+      <span style="color:var(--red)">Supprimer</span>
+    </button>
+    <button class="btn btn-secondary" onclick="closeVehicleMenuSheet()">Annuler</button>`;
+
+  document.getElementById('vehicle-menu-content').innerHTML = menuHtml;
+  document.getElementById('vehicle-menu-overlay').classList.add('show');
+  showSheet('vehicle-menu-sheet');
+  lucide.createIcons();
+}
+
+function closeVehicleMenuSheet() {
+  hideSheet('vehicle-menu-sheet');
+  document.getElementById('vehicle-menu-overlay').classList.remove('show');
 }
 
 function openEditVehicle(id) {

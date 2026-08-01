@@ -1695,14 +1695,16 @@ function renderToday() {
       const pct   = Math.round(Math.abs(diff) / acqCost * 100);
       const col   = diff < 0 ? 'var(--orange)' : 'var(--green)';
       const arrow = diff < 0 ? '\u25bc' : '\u25b2';
-      pctBadge = '<span style="font-size:14px;font-weight:700;color:' + col + '">' + arrow + ' ' + pct + '\u00a0% depuis l\'acquisition</span>';
+      const sign  = diff < 0 ? '\u2212' : '+';
+      pctBadge = '<span style="font-size:13px;font-weight:600;color:' + col + '">' + arrow + ' ' + sign + fmtAmt(Math.abs(diff)) + '\u00a0€ (' + sign + pct + '\u00a0%) depuis l\'acquisition</span>';
     } else if (vVals.length >= 2) {
       const prev  = parseFloat(vVals[1].value);
       const diff  = latestVal - prev;
       const pct   = Math.round(Math.abs(diff) / prev * 100);
       const col   = diff < 0 ? 'var(--orange)' : 'var(--green)';
       const arrow = diff < 0 ? '\u25bc' : '\u25b2';
-      pctBadge = '<span style="font-size:14px;font-weight:700;color:' + col + '">' + arrow + ' ' + pct + '\u00a0% depuis la dernière estimation</span>';
+      const sign  = diff < 0 ? '\u2212' : '+';
+      pctBadge = '<span style="font-size:13px;font-weight:600;color:' + col + '">' + arrow + ' ' + sign + fmtAmt(Math.abs(diff)) + '\u00a0€ (' + sign + pct + '\u00a0%) depuis la dernière estimation</span>';
     }
 
     // --- Courbe SVG avec axes si 2+ cotes ---
@@ -1752,18 +1754,15 @@ function renderToday() {
     }
 
     html += '<div class="card fade-up" style="animation-delay:180ms">'
-      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
-      + '<span style="font-size:15px;font-weight:600;color:var(--text)">Valeur du véhicule</span>'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">'
+      + '<span style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px">Valeur estimée</span>'
       + '<button onclick="openValuationSheet()" style="background:none;border:none;font-size:13px;font-weight:600;color:var(--accent);cursor:pointer;padding:0">Mettre à jour</button>'
       + '</div>'
-      + '<div style="display:flex;align-items:baseline;gap:10px;margin-top:4px;flex-wrap:wrap">'
-      + '<span style="font-size:30px;font-weight:800;color:var(--text);letter-spacing:-0.5px">' + Math.round(latestVal).toLocaleString('fr-FR').replace(/\s/g, '\u2009') + '\u00a0€</span>'
-      + pctBadge
+      + '<div style="margin-top:6px">'
+      + '<span style="font-size:32px;font-weight:800;color:var(--text);letter-spacing:-0.5px">' + Math.round(latestVal).toLocaleString('fr-FR').replace(/\s/g, '\u2009') + '\u00a0€</span>'
       + '</div>'
-      + '<div style="display:flex;align-items:center;gap:12px;margin-top:6px">'
-      + '<p style="font-size:12px;color:var(--text3)">Estimée le ' + latestDate + (latest.note ? ' · ' + latest.note : '') + '</p>'
-      + (acqLine ? '<span style="color:var(--sep)">·</span>' + acqLine : '')
-      + '</div>'
+      + (pctBadge ? '<div style="margin-top:6px">' + pctBadge + '</div>' : '')
+      + '<p style="font-size:12px;color:var(--text3);margin-top:10px">Derni\u00e8re estimation \u00b7 ' + latestDate + (latest.note ? ' \u00b7 ' + latest.note : '') + (acqLine ? ' \u00b7 Prix d\'achat ' + fmtAmt(acqCost) + '\u00a0€' : '') + '</p>'
       + curveHtml
       + '</div>';
   } else {

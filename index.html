@@ -2127,7 +2127,7 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
   const prevM = monthsMap[prevMonthKey] || 0;
   const mEvol = prevM > 0 && currM > 0 ? Math.round((currM - prevM) / prevM * 100) : null;
   const mEvolStr = mEvol !== null
-    ? `<span style="font-size:10px;font-weight:700;color:${mEvol > 0 ? 'var(--orange)' : 'var(--green)'}">${mEvol > 0 ? '▲' : '▼'} ${mEvol > 0 ? '+' : ''}${mEvol}%</span>`
+    ? `<span style="font-size:10px;font-weight:700;color:${mEvol > 0 ? 'var(--orange)' : 'var(--green)'}">${mEvol > 0 ? '▲' : '▼'} ${mEvol > 0 ? '+' : ''}${mEvol}% vs mois préc.</span>`
     : '';
 
   // Évolution annuelle (mois actuel vs même mois il y a un an)
@@ -2343,7 +2343,7 @@ function renderGarage() {
     const pct = Math.round((totalFoyer - lastMonthExp) / lastMonthExp * 100);
     const col = pct > 0 ? 'var(--orange)' : 'var(--green)';
     const sign = pct > 0 ? '+' : '';
-    evolHtml = '<span style="font-size:11px;font-weight:600;color:' + col + ';margin-left:4px">' + sign + pct + '% vs mois préc.</span>';
+    evolHtml = '<span style="font-size:11px;font-weight:600;color:' + col + ';margin-left:4px">' + sign + pct + '%</span>';
   }
 
   // Format : "2 véhicules · 742 € ce mois · 1 action à prévoir"

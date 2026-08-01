@@ -2333,7 +2333,7 @@ function renderGarage() {
     const pct = Math.round((totalFoyer - lastMonthExp) / lastMonthExp * 100);
     const col = pct > 0 ? 'var(--orange)' : 'var(--green)';
     const sign = pct > 0 ? '+' : '';
-    evolHtml = '<span style="font-size:11px;font-weight:600;color:' + col + ';margin-left:4px">' + sign + pct + '% vs préc.</span>';
+    evolHtml = '<span style="font-size:11px;font-weight:600;color:' + col + ';margin-left:4px">' + sign + pct + '% vs mois préc.</span>';
   }
 
   // Format : "2 véhicules · 742 € ce mois · 1 action à prévoir"

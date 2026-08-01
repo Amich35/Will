@@ -60,7 +60,7 @@ body {
 
 /* ── Screens ── */
 .screen { display:none; min-height:100vh; min-height:100dvh; position:relative; }
-.screen.active { display:flex; flex-direction:column; }
+.screen.active { display:flex; flex-direction:column; height:100vh; height:100dvh; overflow:hidden; }
 
 /* ── Cards ── */
 .card {
@@ -4552,8 +4552,8 @@ if ('serviceWorker' in navigator) {
 
 // ── Start ──
 initOfferPanelSwipe();
-initAllPullToRefresh();
 init();
+initAllPullToRefresh();
 </script>
 </body>
 </html>

@@ -288,10 +288,10 @@ body.sheet-open { overflow:hidden; touch-action:none; }
 </head>
 <body>
 <div id="ptr-global" style="position:fixed;top:0;left:0;right:0;z-index:9999;display:flex;align-items:center;justify-content:center;height:56px;pointer-events:none;transform:translateY(-56px);transition:none">
-  <div style="width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center">
-    <svg id="ptr-svg" viewBox="0 0 24 24" width="20" height="20" style="transform:rotate(0deg)">
-      <circle cx="12" cy="12" r="9" fill="none" stroke="#E5E5EA" stroke-width="2.5"/>
-      <circle id="ptr-arc" cx="12" cy="12" r="9" fill="none" stroke="#007AFF" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="0 56.55" transform="rotate(-90 12 12)"/>
+  <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center">
+    <svg id="ptr-svg" viewBox="0 0 36 36" width="36" height="36" style="transform:rotate(0deg)">
+      <circle cx="18" cy="18" r="14" fill="none" stroke="#E5E5EA" stroke-width="3"/>
+      <circle id="ptr-arc" cx="18" cy="18" r="14" fill="none" stroke="#007AFF" stroke-width="3" stroke-linecap="round" stroke-dasharray="0 87.96" transform="rotate(-90 18 18)"/>
     </svg>
   </div>
 </div>
@@ -3222,7 +3222,7 @@ function renderAccount() {
 // ══════════════════════════════════════
 function initAllPullToRefresh() {
   const THRESHOLD = 80;
-  const CIRC = 2 * Math.PI * 9; // r=9
+  const CIRC = 2 * Math.PI * 14; // r=14
   const indicator = document.getElementById('ptr-global');
   const arc       = document.getElementById('ptr-arc');
   const svg       = document.getElementById('ptr-svg');
@@ -3297,7 +3297,7 @@ function initAllPullToRefresh() {
     const fn = getFn();
     if (dy >= THRESHOLD && fn) {
       refreshing = true;
-      indicator.style.transform = 'translateY(0px)';
+      indicator.style.transform = 'translateY(4px)';
       arc.setAttribute('stroke-dasharray', `${CIRC.toFixed(1)} 0`);
       startSpin();
       await fn();

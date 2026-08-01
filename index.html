@@ -1688,23 +1688,23 @@ function renderToday() {
     const curVehicle = vehicles.find(v => v.id === selectedVehicleId);
 
     // --- Variation : acquisition_cost en priorité, sinon cote précédente ---
-    let deprHtml = '';
+    let pctBadge = '', sourceLabel = '';
     const acqCost = curVehicle && curVehicle.acquisition_cost ? parseFloat(curVehicle.acquisition_cost) : null;
     if (acqCost && acqCost > 0) {
       const diff  = latestVal - acqCost;
       const pct   = Math.round(Math.abs(diff) / acqCost * 100);
       const col   = diff < 0 ? 'var(--orange)' : 'var(--green)';
-      const sign  = diff < 0 ? '\u2212' : '+';
-      deprHtml = '<span style="font-size:12px;font-weight:600;color:' + col + '">'
-        + sign + pct + '\u00a0% depuis l\'acquisition</span>';
+      const arrow = diff < 0 ? '\u25bc' : '\u25b2';
+      pctBadge = '<span style="font-size:14px;font-weight:700;color:' + col + '">' + arrow + ' ' + pct + '\u00a0%</span>';
+      sourceLabel = 'depuis l\'acquisition';
     } else if (vVals.length >= 2) {
       const prev  = parseFloat(vVals[1].value);
       const diff  = latestVal - prev;
       const pct   = Math.round(Math.abs(diff) / prev * 100);
       const col   = diff < 0 ? 'var(--orange)' : 'var(--green)';
-      const sign  = diff < 0 ? '\u2212' : '+';
-      deprHtml = '<span style="font-size:12px;font-weight:600;color:' + col + '">'
-        + sign + pct + '\u00a0% depuis la derni\u00e8re estimation</span>';
+      const arrow = diff < 0 ? '\u25bc' : '\u25b2';
+      pctBadge = '<span style="font-size:14px;font-weight:700;color:' + col + '">' + arrow + ' ' + pct + '\u00a0%</span>';
+      sourceLabel = 'depuis la dernière estimation';
     }
 
     // --- Courbe SVG avec axes si 2+ cotes ---
@@ -1758,10 +1758,11 @@ function renderToday() {
       + '<span style="font-size:15px;font-weight:600;color:var(--text)">Valeur du véhicule</span>'
       + '<button onclick="openValuationSheet()" style="background:none;border:none;font-size:13px;font-weight:600;color:var(--accent);cursor:pointer;padding:0">Mettre à jour</button>'
       + '</div>'
-      + '<div style="margin-top:4px">'
+      + '<div style="display:flex;align-items:baseline;gap:10px;margin-top:4px;flex-wrap:wrap">'
       + '<span style="font-size:30px;font-weight:800;color:var(--text);letter-spacing:-0.5px">' + Math.round(latestVal).toLocaleString('fr-FR').replace(/\s/g, '\u2009') + '\u00a0€</span>'
+      + pctBadge
       + '</div>'
-      + (deprHtml ? '<div style="margin-top:4px">' + deprHtml + '</div>' : '')
+      + (sourceLabel ? '<p style="font-size:12px;color:var(--text3);margin-top:2px">' + sourceLabel + '</p>' : '')
       + '<div style="display:flex;align-items:center;gap:12px;margin-top:6px">'
       + '<p style="font-size:12px;color:var(--text3)">Estimée le ' + latestDate + (latest.note ? ' · ' + latest.note : '') + '</p>'
       + (acqLine ? '<span style="color:var(--sep)">·</span>' + acqLine : '')

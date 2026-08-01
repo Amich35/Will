@@ -2115,7 +2115,7 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
   const prevM = monthsMap[prevMonthKey] || 0;
   const mEvol = prevM > 0 && currM > 0 ? Math.round((currM - prevM) / prevM * 100) : null;
   const mEvolStr = mEvol !== null
-    ? `<span style="font-size:10px;font-weight:700;color:${mEvol > 0 ? 'var(--orange)' : 'var(--green)'}">${mEvol > 0 ? '+' : '−'}${Math.abs(mEvol)}% vs mois préc.</span>`
+    ? `<span style="font-size:10px;font-weight:700;color:${mEvol > 0 ? 'var(--orange)' : 'var(--green)'}">${mEvol > 0 ? '▲' : '▼'} ${mEvol > 0 ? '+' : ''}${mEvol}%</span>`
     : '';
 
   // Évolution annuelle (mois actuel vs même mois il y a un an)
@@ -2123,7 +2123,7 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
   const lastYearM = monthsMap[lastYearKey] || 0;
   const yEvol = lastYearM > 0 && currM > 0 ? Math.round((currM - lastYearM) / lastYearM * 100) : null;
   const yEvolStr = yEvol !== null
-    ? `<span style="font-size:10px;font-weight:700;color:${yEvol > 0 ? 'var(--orange)' : 'var(--green)'}">${yEvol > 0 ? '+' : '−'}${Math.abs(yEvol)}% sur un an</span>`
+    ? `<span style="font-size:10px;font-weight:700;color:${yEvol > 0 ? 'var(--orange)' : 'var(--green)'}">${yEvol > 0 ? '▲' : '▼'} ${yEvol > 0 ? '+' : ''}${yEvol}% sur un an</span>`
     : '';
 
   const fmt = n => fmtAmt(n) + '\u202f€';

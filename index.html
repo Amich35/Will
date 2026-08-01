@@ -1699,54 +1699,90 @@ function renderToday() {
     .sort((a,b) => new Date(b.valuation_date) - new Date(a.valuation_date));
 
   if (vVals.length > 0) {
-    const latest = vVals[0];
+    const latest    = vVals[0];
+    const latestVal = parseFloat(latest.value);
     const latestDate = new Date(latest.valuation_date).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' });
-    const latestVal  = parseFloat(latest.value);
+    const curVehicle = vehicles.find(v => v.id === selectedVehicleId);
 
-    // Courbe SVG si 2+ cotes
+    // --- Variation : acquisition_cost en priorité, sinon cote précédente ---
+    let deprHtml = '';
+    const acqCost = curVehicle && curVehicle.acquisition_cost ? parseFloat(curVehicle.acquisition_cost) : null;
+    if (acqCost && acqCost > 0) {
+      const diff = latestVal - acqCost;
+      const pct  = Math.round(Math.abs(diff) / acqCost * 100);
+      const col  = diff < 0 ? 'var(--orange)' : 'var(--green)';
+      const sign = diff < 0 ? '−' : '+';
+      deprHtml = '<span style="font-size:13px;font-weight:600;color:' + col + ';margin-left:10px;letter-spacing:-0.1px">'
+        + sign + pct + '% depuis l\'acquisition</span>';
+    } else if (vVals.length >= 2) {
+      const prev = parseFloat(vVals[1].value);
+      const diff = latestVal - prev;
+      const pct  = Math.round(Math.abs(diff) / prev * 100);
+      const col  = diff < 0 ? 'var(--orange)' : 'var(--green)';
+      const sign = diff < 0 ? '−' : '+';
+      deprHtml = '<span style="font-size:13px;font-weight:600;color:' + col + ';margin-left:10px;letter-spacing:-0.1px">'
+        + sign + pct + '% depuis la dernière estimation</span>';
+    }
+
+    // --- Courbe SVG avec axes si 2+ cotes ---
     let curveHtml = '';
     if (vVals.length >= 2) {
-      const pts2 = vVals.slice(0, 6).reverse();
-      const maxV = Math.max(...pts2.map(v => parseFloat(v.value)));
-      const minV = Math.min(...pts2.map(v => parseFloat(v.value)));
-      const rng  = maxV - minV || 1;
-      const coords = pts2.map((v, i) => {
-        const x = i / (pts2.length - 1) * 220;
-        const y = 36 - ((parseFloat(v.value) - minV) / rng) * 30;
-        return x + ',' + y;
-      }).join(' ');
-      const dots = pts2.map((v, i) => {
-        const x = i / (pts2.length - 1) * 220;
-        const y = 36 - ((parseFloat(v.value) - minV) / rng) * 30;
-        return '<circle cx="' + x + '" cy="' + y + '" r="3.5" fill="var(--accent)"/>';
+      const pts2  = vVals.slice(0, 6).reverse();
+      const W = 280, H = 56, PAD_L = 48, PAD_R = 8, PAD_T = 8, PAD_B = 24;
+      const chartW = W - PAD_L - PAD_R;
+      const chartH = H - PAD_T - PAD_B;
+      const maxV   = Math.max(...pts2.map(p => parseFloat(p.value)));
+      const minV   = Math.min(...pts2.map(p => parseFloat(p.value)));
+      const rng    = maxV - minV || maxV * 0.1 || 1;
+      const toX    = i => PAD_L + (i / (pts2.length - 1)) * chartW;
+      const toY    = v => PAD_T + chartH - ((parseFloat(v) - minV) / rng) * chartH;
+
+      const coords = pts2.map((p, i) => toX(i) + ',' + toY(p.value)).join(' ');
+      const dots   = pts2.map((p, i) => {
+        const x = toX(i), y = toY(p.value);
+        return '<circle cx="' + x + '" cy="' + y + '" r="3.5" fill="var(--accent)" stroke="#fff" stroke-width="1.5"/>';
       }).join('');
-      curveHtml = '<svg width="220" height="44" style="overflow:visible;display:block;margin-top:12px">'
+
+      // Labels dates axe X (premier + dernier)
+      const fmtShort = d => new Date(d).toLocaleDateString('fr-FR', { month:'short', year:'2-digit' });
+      const xLabels  = '<text x="' + PAD_L + '" y="' + (H) + '" font-size="9" fill="var(--text3)" text-anchor="middle">' + fmtShort(pts2[0].valuation_date) + '</text>'
+        + '<text x="' + (PAD_L + chartW) + '" y="' + (H) + '" font-size="9" fill="var(--text3)" text-anchor="middle">' + fmtShort(pts2[pts2.length-1].valuation_date) + '</text>';
+
+      // Labels valeurs axe Y (min + max)
+      const fmtK = v => v >= 1000 ? Math.round(v/1000) + 'k' : Math.round(v) + '';
+      const yLabels  = '<text x="' + (PAD_L - 6) + '" y="' + (PAD_T + 3) + '" font-size="9" fill="var(--text3)" text-anchor="end">' + fmtK(maxV) + '</text>'
+        + '<text x="' + (PAD_L - 6) + '" y="' + (PAD_T + chartH + 3) + '" font-size="9" fill="var(--text3)" text-anchor="end">' + fmtK(minV) + '</text>';
+
+      // Ligne de base Y
+      const baseLine = '<line x1="' + PAD_L + '" y1="' + (PAD_T + chartH) + '" x2="' + (PAD_L + chartW) + '" y2="' + (PAD_T + chartH) + '" stroke="var(--sep)" stroke-width="1"/>';
+      // Ligne axe Y
+      const yAxis    = '<line x1="' + PAD_L + '" y1="' + PAD_T + '" x2="' + PAD_L + '" y2="' + (PAD_T + chartH) + '" stroke="var(--sep)" stroke-width="1"/>';
+
+      curveHtml = '<svg width="' + W + '" height="' + H + '" style="overflow:visible;display:block;margin-top:16px;width:100%">'
+        + baseLine + yAxis + yLabels + xLabels
         + '<polyline points="' + coords + '" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
         + dots + '</svg>';
     }
 
-    // Dépréciation depuis première cote
-    let deprHtml = '';
-    if (vVals.length >= 2) {
-      const first = parseFloat(vVals[vVals.length - 1].value);
-      const diff  = latestVal - first;
-      const pct   = Math.round(Math.abs(diff) / first * 100);
-      const col   = diff < 0 ? 'var(--orange)' : 'var(--green)';
-      const sign  = diff < 0 ? '-' : '+';
-      deprHtml = '<span style="font-size:12px;font-weight:600;color:' + col + ';margin-left:8px">'
-        + sign + pct + '% depuis l\'acquisition</span>';
+    // --- Prix d'achat affiché si disponible ---
+    let acqLine = '';
+    if (acqCost && acqCost > 0) {
+      acqLine = '<span style="font-size:12px;color:var(--text3)">Prix d\'achat · ' + fmtAmt(acqCost) + ' €</span>';
     }
 
     html += '<div class="card fade-up" style="animation-delay:180ms">'
-      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'
-      + '<span style="font-size:15px;font-weight:600;color:var(--text)">Valeur estimée</span>'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+      + '<span style="font-size:15px;font-weight:600;color:var(--text)">Valeur du véhicule</span>'
       + '<button onclick="openValuationSheet()" style="background:none;border:none;font-size:13px;font-weight:600;color:var(--accent);cursor:pointer;padding:0">Mettre à jour</button>'
       + '</div>'
-      + '<div style="display:flex;align-items:baseline;gap:4px;margin-top:6px">'
-      + '<span style="font-size:28px;font-weight:800;color:var(--text);letter-spacing:-0.5px">'
-      + latestVal.toLocaleString('fr-FR') + ' €</span>'
-      + deprHtml + '</div>'
-      + '<p style="font-size:12px;color:var(--text3);margin-top:4px">Estimée le ' + latestDate + (latest.note ? ' · ' + latest.note : '') + '</p>'
+      + '<div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:2px;margin-top:4px">'
+      + '<span style="font-size:30px;font-weight:800;color:var(--text);letter-spacing:-0.5px">' + latestVal.toLocaleString('fr-FR') + ' €</span>'
+      + deprHtml
+      + '</div>'
+      + '<div style="display:flex;align-items:center;gap:12px;margin-top:6px">'
+      + '<p style="font-size:12px;color:var(--text3)">Estimée le ' + latestDate + (latest.note ? ' · ' + latest.note : '') + '</p>'
+      + (acqLine ? '<span style="color:var(--sep)">·</span>' + acqLine : '')
+      + '</div>'
       + curveHtml
       + '</div>';
   } else {

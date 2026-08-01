@@ -239,12 +239,15 @@ body.sheet-open { overflow:hidden; touch-action:none; }
 
 /* ── Pull to refresh ── */
 .ptr-indicator {
-  position:absolute; top:-52px; left:0; right:0; height:52px;
+  position:fixed; top:0; left:0; right:0;
   display:flex; align-items:center; justify-content:center;
-  pointer-events:none; z-index:10;
+  pointer-events:none; z-index:999;
+  height:60px;
+  transform:translateY(-60px);
+  transition:transform 0.2s ease;
 }
 .ptr-ring {
-  width:28px; height:28px; opacity:0; transition:opacity 0.1s ease;
+  width:28px; height:28px; opacity:1;
 }
 .ptr-indicator.loading .ptr-ring { animation:ptr-spin 0.7s linear infinite; }
 @keyframes ptr-spin { to { transform:rotate(360deg); } }
@@ -3237,7 +3240,7 @@ function renderAccount() {
 }
 
 // ══════════════════════════════════════
-// PULL TO REFRESH — listeners sur window
+// PULL TO REFRESH — indicateur global fixé, descend au pull
 // ══════════════════════════════════════
 function initAllPullToRefresh() {
   const THRESHOLD = 72;
@@ -3251,37 +3254,37 @@ function initAllPullToRefresh() {
 
   let startY = 0, isDragging = false, isRefreshing = false;
 
-  function currentTab() { return activeTab || ''; }
-
   function getPtr() {
-    const t = tabs.find(t => currentTab() === t.tab);
+    const t = tabs.find(t => (activeTab || '') === t.tab);
     return t ? document.getElementById(t.ptr) : null;
   }
   function getFn() {
-    const t = tabs.find(t => currentTab() === t.tab);
+    const t = tabs.find(t => (activeTab || '') === t.tab);
     return t ? t.fn : null;
   }
-  function setIndicator(ptr, pct) {
+
+  function showProgress(ptr, dy) {
     if (!ptr) return;
-    const ring = ptr.querySelector('.ptr-ring');
+    const pct = Math.min(dy / THRESHOLD, 1);
+    const translateY = Math.min(dy * 0.5, 40);
+    ptr.style.transform = `translateY(${translateY}px)`;
     const prog = ptr.querySelector('.progress');
-    if (ring) ring.style.opacity = String(Math.min(pct * 2, 1));
     if (prog) {
       const dash = pct * CIRC;
       prog.setAttribute('stroke-dasharray', dash.toFixed(1) + ' ' + (CIRC - dash).toFixed(1));
     }
   }
-  function resetIndicator(ptr) {
+
+  function hideProgress(ptr) {
     if (!ptr) return;
-    const ring = ptr.querySelector('.ptr-ring');
+    ptr.style.transform = 'translateY(-60px)';
+    ptr.classList.remove('loading');
     const prog = ptr.querySelector('.progress');
-    if (ring) ring.style.opacity = '0';
     if (prog) prog.setAttribute('stroke-dasharray', '0 ' + CIRC.toFixed(1));
   }
 
   window.addEventListener('touchstart', e => {
-    if (isRefreshing) return;
-    if (window.scrollY > 2) return;
+    if (isRefreshing || window.scrollY > 2) return;
     startY = e.touches[0].clientY;
     isDragging = true;
   }, { passive: true });
@@ -3291,8 +3294,7 @@ function initAllPullToRefresh() {
     if (window.scrollY > 2) { isDragging = false; return; }
     const dy = e.touches[0].clientY - startY;
     if (dy <= 0) return;
-    const pct = Math.min(dy / THRESHOLD, 1);
-    setIndicator(getPtr(), pct);
+    showProgress(getPtr(), dy);
   }, { passive: true });
 
   window.addEventListener('touchend', async e => {
@@ -3303,13 +3305,19 @@ function initAllPullToRefresh() {
     const fn  = getFn();
     if (dy >= THRESHOLD && fn) {
       isRefreshing = true;
-      setIndicator(ptr, 1);
-      if (ptr) ptr.classList.add('loading');
+      if (ptr) {
+        ptr.style.transform = 'translateY(40px)';
+        ptr.classList.add('loading');
+        const prog = ptr.querySelector('.progress');
+        if (prog) prog.setAttribute('stroke-dasharray', CIRC.toFixed(1) + ' 0');
+      }
       await fn();
-      if (ptr) ptr.classList.remove('loading');
+      await new Promise(r => setTimeout(r, 300));
+      hideProgress(ptr);
       isRefreshing = false;
+    } else {
+      hideProgress(ptr);
     }
-    resetIndicator(ptr);
   }, { passive: true });
 }
 

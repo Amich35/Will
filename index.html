@@ -1708,19 +1708,20 @@ function renderToday() {
     let deprHtml = '';
     const acqCost = curVehicle && curVehicle.acquisition_cost ? parseFloat(curVehicle.acquisition_cost) : null;
     if (acqCost && acqCost > 0) {
-      const diff = latestVal - acqCost;
-      const pct  = Math.round(Math.abs(diff) / acqCost * 100);
-      const col  = diff < 0 ? 'var(--orange)' : 'var(--green)';
-      const sign = diff < 0 ? '−' : '+';
-      deprHtml = '<span style="font-size:13px;font-weight:600;color:' + col + ';margin-left:10px;letter-spacing:-0.1px">'
+      const diff  = latestVal - acqCost;
+      const pct   = Math.round(Math.abs(diff) / acqCost * 100);
+      const col   = diff < 0 ? 'var(--orange)' : 'var(--green)';
+      const arrow = diff < 0 ? 'down' : 'up';
+      const sign  = diff < 0 ? '\u2212' : '+';
+      deprHtml = '<span style="font-size:13px;font-weight:600;color:' + col + ';white-space:nowrap">'
         + sign + pct + '% depuis l\'acquisition</span>';
     } else if (vVals.length >= 2) {
-      const prev = parseFloat(vVals[1].value);
-      const diff = latestVal - prev;
-      const pct  = Math.round(Math.abs(diff) / prev * 100);
-      const col  = diff < 0 ? 'var(--orange)' : 'var(--green)';
-      const sign = diff < 0 ? '−' : '+';
-      deprHtml = '<span style="font-size:13px;font-weight:600;color:' + col + ';margin-left:10px;letter-spacing:-0.1px">'
+      const prev  = parseFloat(vVals[1].value);
+      const diff  = latestVal - prev;
+      const pct   = Math.round(Math.abs(diff) / prev * 100);
+      const col   = diff < 0 ? 'var(--orange)' : 'var(--green)';
+      const sign  = diff < 0 ? '\u2212' : '+';
+      deprHtml = '<span style="font-size:13px;font-weight:600;color:' + col + ';white-space:nowrap">'
         + sign + pct + '% depuis la dernière estimation</span>';
     }
 
@@ -1728,7 +1729,7 @@ function renderToday() {
     let curveHtml = '';
     if (vVals.length >= 2) {
       const pts2  = vVals.slice(0, 6).reverse();
-      const W = 280, H = 56, PAD_L = 48, PAD_R = 8, PAD_T = 8, PAD_B = 24;
+      const W = 280, H = 90, PAD_L = 48, PAD_R = 8, PAD_T = 8, PAD_B = 24;
       const chartW = W - PAD_L - PAD_R;
       const chartH = H - PAD_T - PAD_B;
       const maxV   = Math.max(...pts2.map(p => parseFloat(p.value)));
@@ -1758,7 +1759,7 @@ function renderToday() {
       // Ligne axe Y
       const yAxis    = '<line x1="' + PAD_L + '" y1="' + PAD_T + '" x2="' + PAD_L + '" y2="' + (PAD_T + chartH) + '" stroke="var(--sep)" stroke-width="1"/>';
 
-      curveHtml = '<svg width="' + W + '" height="' + H + '" style="overflow:visible;display:block;margin-top:16px;width:100%">'
+      curveHtml = '<svg width="' + W + '" height="' + H + '" style="overflow:visible;display:block;margin-top:16px;width:100%;height:' + H + 'px">'
         + baseLine + yAxis + yLabels + xLabels
         + '<polyline points="' + coords + '" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
         + dots + '</svg>';
@@ -1775,8 +1776,8 @@ function renderToday() {
       + '<span style="font-size:15px;font-weight:600;color:var(--text)">Valeur du véhicule</span>'
       + '<button onclick="openValuationSheet()" style="background:none;border:none;font-size:13px;font-weight:600;color:var(--accent);cursor:pointer;padding:0">Mettre à jour</button>'
       + '</div>'
-      + '<div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:2px;margin-top:4px">'
-      + '<span style="font-size:30px;font-weight:800;color:var(--text);letter-spacing:-0.5px">' + latestVal.toLocaleString('fr-FR') + ' €</span>'
+      + '<div style="display:flex;align-items:center;gap:10px;margin-top:4px;flex-wrap:nowrap">'
+      + '<span style="font-size:30px;font-weight:800;color:var(--text);letter-spacing:-0.5px;flex-shrink:0">' + latestVal.toLocaleString('fr-FR') + ' €</span>'
       + deprHtml
       + '</div>'
       + '<div style="display:flex;align-items:center;gap:12px;margin-top:6px">'

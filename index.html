@@ -2604,10 +2604,11 @@ function renderRevenues() {
 
   // Résumé
   const summaryEl = document.getElementById('expense-summary');
-  const totalRev = revenues.filter(r => r.vehicle_id === selectedVehicleId).reduce((s,r) => s + parseFloat(r.amount), 0);
+  const allVehicleRev = filterByPeriodCustom(revenues.filter(r => r.vehicle_id === selectedVehicleId), selectedRevPeriod, 'date');
+  const totalRev = allVehicleRev.reduce((s,r) => s + parseFloat(r.amount), 0);
   if (summaryEl) {
-    summaryEl.textContent = revenues.filter(r => r.vehicle_id === selectedVehicleId).length > 0
-      ? `${fmtAmt(totalRev)} € · ${revenues.filter(r=>r.vehicle_id===selectedVehicleId).length} recette${revenues.filter(r=>r.vehicle_id===selectedVehicleId).length>1?'s':''}`
+    summaryEl.textContent = allVehicleRev.length > 0
+      ? `${fmtAmt(totalRev)} € · ${allVehicleRev.length} recette${allVehicleRev.length>1?'s':''}`
       : '';
   }
 
@@ -2626,11 +2627,12 @@ function renderRevenues() {
 
   // Grouper par mois
   const groups = {};
-  filtered.forEach(r => {
+  filtered.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(r => {
     const d = new Date(r.date);
-    const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(r);
+    const key = d.getFullYear() + '-' + String(d.getMonth()).padStart(2,'0');
+    if (!groups[key]) groups[key] = { date: d, label: d.toLocaleDateString('fr-FR', { month:'long', year:'numeric' }), recs: [], total: 0 };
+    groups[key].recs.push(r);
+    groups[key].total += parseFloat(r.amount);
   });
 
   let html = '<div style="padding:0 20px 100px">'
@@ -2639,15 +2641,38 @@ function renderRevenues() {
     + '<input id="revenue-search" class="input-field" placeholder="Rechercher une recette…" oninput="renderRevenues()"'
     + ' style="padding-left:36px;height:38px;font-size:14px;background:rgba(0,0,0,0.04);border-color:transparent">'
     + '</div>';
-  Object.entries(groups).sort((a,b) => b[0].localeCompare(a[0])).forEach(([key, recs]) => {
-    const [y, m] = key.split('-');
-    const monthLabel = new Date(y, m-1, 1).toLocaleDateString('fr-FR', { month:'long', year:'numeric' });
-    const monthTotal = recs.reduce((s,r) => s + parseFloat(r.amount), 0);
-    html += `<div style="display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 8px">
-      <span style="font-size:13px;font-weight:700;color:var(--text2);text-transform:capitalize">${monthLabel}</span>
-      <span style="font-size:12px;color:var(--green);font-weight:600">+${fmtAmt(monthTotal)} €</span>
+  Object.values(groups).sort((a,b) => b.date - a.date).forEach(g => {
+    // Évolution vs mois précédent
+    const gDate = g.date;
+    const prevMonthStart = new Date(gDate.getFullYear(), gDate.getMonth() - 1, 1);
+    const prevMonthEnd   = new Date(gDate.getFullYear(), gDate.getMonth(), 0);
+    const prevTotal = revenues
+      .filter(r => r.vehicle_id === selectedVehicleId)
+      .filter(r => { const d = new Date(r.date); return d >= prevMonthStart && d <= prevMonthEnd; })
+      .reduce((s,r) => s + parseFloat(r.amount), 0);
+    let evolStr = '';
+    if (prevTotal > 0 && g.total > 0) {
+      const pct = Math.round((g.total - prevTotal) / prevTotal * 100);
+      const col = pct > 0 ? 'var(--green)' : 'var(--orange)';
+      const arrow = pct > 0 ? '↑' : '↓';
+      evolStr = `<span style="font-size:11px;font-weight:700;color:${col};margin-left:6px">${arrow} ${pct > 0 ? '+' : ''}${pct}% vs mois préc.</span>`;
+    }
+
+    const countLabel = `${g.recs.length} recette${g.recs.length > 1 ? 's' : ''}`;
+    const totalLabel = `+${fmtAmt(g.total)} €`;
+
+    html += `<div style="padding:20px 0 8px;margin-top:4px">
+      <div style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px">${g.label}</span>
+        ${evolStr}
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;margin-top:3px">
+        <span style="font-size:13px;font-weight:600;color:var(--green)">${totalLabel}</span>
+        <span style="font-size:12px;color:var(--text3)">&middot; ${countLabel}</span>
+      </div>
     </div>`;
-    recs.forEach(r => {
+
+    g.recs.forEach(r => {
       const catLabel = REV_LABELS[r.category] || r.category;
       const iconBg = REV_COLORS[r.category] ? REV_COLORS[r.category] + '22' : 'rgba(142,142,147,0.12)';
       html += `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--sep)">

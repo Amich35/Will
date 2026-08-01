@@ -2065,11 +2065,17 @@ function openVehicleToday(vehicleId) {
 
 function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored) {
   const hasPhoto = v.photo_url && v.photo_url.length > 10;
-  const kmLine = v.mileage
-    ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:rgba(255,255,255,0.7)"><i data-lucide="gauge" style="width:13px;height:13px"></i>${parseInt(v.mileage).toLocaleString('fr-FR')} km</span>`
-    : `<span style="font-size:12px;color:rgba(255,255,255,0.35);font-style:italic">km non renseigné</span>`;
 
-  // ── Chiffres (calculés ici pour les deux variantes) ──
+  // ── Ligne info véhicule sous le nom (km • carburant • année) ──
+  const infoParts = [];
+  if (v.mileage)  infoParts.push(parseInt(v.mileage).toLocaleString('fr-FR') + ' km');
+  if (v.fuel)     infoParts.push(v.fuel.charAt(0).toUpperCase() + v.fuel.slice(1));
+  if (v.year)     infoParts.push(v.year);
+  const kmLine = infoParts.length > 0
+    ? `<span style="font-size:13px;color:rgba(255,255,255,0.65);display:inline-flex;align-items:center;gap:6px">${infoParts.join('<span style="opacity:0.4"> • </span>')}</span>`
+    : `<span style="font-size:12px;color:rgba(255,255,255,0.35);font-style:italic">Infos non renseignées</span>`;
+
+  // ── Calculs ──
   const vExp = expenses.filter(e => e.vehicle_id === v.id);
   const totalNet = vExp.reduce((s,e) => s + parseFloat(e.amount), 0);
   const monthsMap = {};
@@ -2078,69 +2084,121 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
     const key = d.getFullYear() + '-' + d.getMonth();
     monthsMap[key] = (monthsMap[key] || 0) + parseFloat(e.amount);
   });
-  const monthVals = Object.values(monthsMap);
-  const avgMonth  = monthVals.length > 0 ? monthVals.reduce((s,x)=>s+x,0)/monthVals.length : 0;
-  const lastVal   = valuations.filter(val=>val.vehicle_id===v.id).sort((a,b)=>new Date(b.valuation_date)-new Date(a.valuation_date))[0];
+  const monthVals  = Object.values(monthsMap);
+  const avgMonth   = monthVals.length > 0 ? monthVals.reduce((s,x)=>s+x,0)/monthVals.length : 0;
+  const lastVal    = valuations.filter(val=>val.vehicle_id===v.id).sort((a,b)=>new Date(b.valuation_date)-new Date(a.valuation_date))[0];
 
-  const fmt = n => fmtAmt(n) + ' €';
+  // Évolution mois précédent
+  const now = new Date();
+  const currMonthKey = now.getFullYear() + '-' + now.getMonth();
+  const prevMonthKey = (now.getMonth() === 0 ? now.getFullYear()-1 : now.getFullYear()) + '-' + (now.getMonth() === 0 ? 11 : now.getMonth()-1);
+  const currM = monthsMap[currMonthKey] || 0;
+  const prevM = monthsMap[prevMonthKey] || 0;
+  const mEvol = prevM > 0 && currM > 0 ? Math.round((currM - prevM) / prevM * 100) : null;
+  const mEvolStr = mEvol !== null
+    ? `<span style="font-size:10px;font-weight:700;color:${mEvol > 0 ? 'var(--orange)' : 'var(--green)'}">${mEvol > 0 ? '▲' : '▼'} ${mEvol > 0 ? '+' : ''}${mEvol}%</span>`
+    : '';
 
-  // Bloc chiffres commun (fond blanc, collé sous la photo)
-  const statsBlock = `
-    <div style="padding:16px 18px">
-      <!-- Ligne 1 : coût total net -->
-      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--sep)">
-        <span style="font-size:13px;color:var(--text3)">Coût total net</span>
-        <span style="font-size:16px;font-weight:700;color:var(--text)">${totalNet > 0 ? fmt(totalNet) : '—'}</span>
+  // Évolution annuelle (mois actuel vs même mois il y a un an)
+  const lastYearKey = (now.getFullYear()-1) + '-' + now.getMonth();
+  const lastYearM = monthsMap[lastYearKey] || 0;
+  const yEvol = lastYearM > 0 && currM > 0 ? Math.round((currM - lastYearM) / lastYearM * 100) : null;
+  const yEvolStr = yEvol !== null
+    ? `<span style="font-size:10px;font-weight:700;color:${yEvol > 0 ? 'var(--orange)' : 'var(--green)'}">${yEvol > 0 ? '▲' : '▼'} ${yEvol > 0 ? '+' : ''}${yEvol}% sur un an</span>`
+    : '';
+
+  const fmt = n => fmtAmt(n) + '\u202f€';
+
+  // ── Badge état ──
+  const badgeEl = `<span style="display:inline-flex;align-items:center;gap:5px;background:${badgeColor === 'var(--green)' || badgeColor === '#34C759' ? 'rgba(52,199,89,0.1)' : badgeColor === 'var(--orange)' || badgeColor === '#FF9500' ? 'rgba(255,149,0,0.1)' : 'rgba(255,59,48,0.1)'};border-radius:20px;padding:4px 10px">
+    <span style="width:6px;height:6px;border-radius:50%;background:${badgeColor};flex-shrink:0"></span>
+    <span style="font-size:11px;font-weight:600;color:${badgeColor === 'var(--green)' || badgeColor === '#34C759' ? '#1a7a38' : badgeColor}">${badgeLabel}</span>
+  </span>`;
+
+  // ── statsBlock premium ──
+  const statsBlock = `<div style="padding:20px 18px 4px">
+
+    <!-- HÉROS : Coût de possession -->
+    <div style="padding-bottom:20px;border-bottom:1px solid var(--sep)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.7px">Coût de possession</span>
+        ${badgeEl}
       </div>
-      <!-- Ligne 2 : mensuel / annuel -->
-      <div style="display:flex;gap:0;margin-top:12px;padding-bottom:${lastVal ? '12px' : '0'};border-bottom:${lastVal ? '1px solid var(--sep)' : 'none'}">
-        <div style="flex:1">
-          <p style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.4px">${mTotal > 0 ? fmt(mTotal) : '—'}</p>
-          <p style="font-size:11px;color:var(--text3);margin-top:2px">ce mois</p>
-        </div>
-        <div style="flex:1">
-          <p style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.4px">${avgMonth > 0 ? fmt(avgMonth) : '—'}</p>
-          <p style="font-size:11px;color:var(--text3);margin-top:2px">mois (moy.)</p>
-        </div>
-        <div style="flex:1">
-          <p style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.4px">${avgMonth > 0 ? fmt(avgMonth*12) : '—'}</p>
-          <p style="font-size:11px;color:var(--text3);margin-top:2px">an (estimé)</p>
-        </div>
+      <div style="display:flex;align-items:baseline;gap:6px;margin-top:6px">
+        <span style="font-size:32px;font-weight:800;color:var(--text);letter-spacing:-1px;line-height:1">${totalNet > 0 ? fmt(totalNet) : '—'}</span>
       </div>
-      <!-- Ligne 3 : si vente à la cote -->
-      ${lastVal ? (() => {
-        const cote = parseFloat(lastVal.value);
-        const net2 = Math.max(0, totalNet - cote);
-        const m2   = monthVals.length > 0 ? net2/monthVals.length : 0;
-        return `<div style="margin-top:12px">
-          <p style="font-size:11px;font-weight:600;color:var(--green);margin-bottom:8px">Si vente à la dernière cote · ${fmt(cote)}</p>
-          <div style="display:flex;gap:0">
-            <div style="flex:1"><p style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.4px">${fmt(m2)}</p><p style="font-size:11px;color:var(--text3);margin-top:2px">mois</p></div>
-            <div style="flex:1"><p style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.4px">${fmt(m2*12)}</p><p style="font-size:11px;color:var(--text3);margin-top:2px">an</p></div>
+      <p style="font-size:12px;color:var(--text3);margin-top:4px">Depuis l'acquisition · toutes dépenses</p>
+    </div>
+
+    <!-- KPI ROW -->
+    <div style="display:flex;gap:0;padding:16px 0;border-bottom:1px solid var(--sep)">
+
+      <div style="flex:1;padding-right:12px">
+        <p style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Ce mois</p>
+        <p style="font-size:20px;font-weight:700;color:var(--text);letter-spacing:-0.5px;line-height:1">${mTotal > 0 ? fmt(mTotal) : '—'}</p>
+        ${mEvolStr ? `<div style="margin-top:5px">${mEvolStr}</div>` : `<p style="font-size:10px;color:var(--text3);margin-top:5px">vs mois préc.</p>`}
+      </div>
+
+      <div style="width:1px;background:var(--sep);margin:0 4px"></div>
+
+      <div style="flex:1;padding:0 12px">
+        <p style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Moyenne</p>
+        <p style="font-size:20px;font-weight:700;color:var(--text);letter-spacing:-0.5px;line-height:1">${avgMonth > 0 ? fmt(avgMonth) : '—'}</p>
+        <p style="font-size:10px;color:var(--text3);margin-top:5px">par mois</p>
+      </div>
+
+      <div style="width:1px;background:var(--sep);margin:0 4px"></div>
+
+      <div style="flex:1;padding-left:12px">
+        <p style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Projection</p>
+        <p style="font-size:20px;font-weight:700;color:var(--text);letter-spacing:-0.5px;line-height:1">${avgMonth > 0 ? fmt(avgMonth*12) : '—'}</p>
+        ${yEvolStr ? `<div style="margin-top:5px">${yEvolStr}</div>` : `<p style="font-size:10px;color:var(--text3);margin-top:5px">sur 12 mois</p>`}
+      </div>
+
+    </div>
+
+    <!-- SECTION REVENTE -->
+    ${lastVal ? (() => {
+      const cote = parseFloat(lastVal.value);
+      const net2 = Math.max(0, totalNet - cote);
+      const m2   = monthVals.length > 0 ? net2/monthVals.length : 0;
+      return `<div style="padding:16px 0 4px">
+        <p style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:12px">Si vous revendiez votre véhicule aujourd'hui</p>
+        <div style="background:rgba(52,199,89,0.06);border:1px solid rgba(52,199,89,0.15);border-radius:12px;padding:12px 14px;margin-bottom:12px">
+          <p style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Valeur estimée</p>
+          <p style="font-size:22px;font-weight:800;color:var(--green);letter-spacing:-0.5px">${fmt(cote)}</p>
+        </div>
+        <p style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Votre coût réel deviendrait</p>
+        <div style="display:flex;gap:0">
+          <div style="flex:1">
+            <p style="font-size:22px;font-weight:700;color:var(--text);letter-spacing:-0.5px">${fmt(m2)}</p>
+            <p style="font-size:11px;color:var(--text3);margin-top:2px">par mois</p>
           </div>
-        </div>`;
-      })() : ''}
-    </div>`;
+          <div style="flex:1">
+            <p style="font-size:22px;font-weight:700;color:var(--text);letter-spacing:-0.5px">${fmt(m2*12)}</p>
+            <p style="font-size:11px;color:var(--text3);margin-top:2px">par an</p>
+          </div>
+        </div>
+      </div>`;
+    })() : '<div style="height:16px"></div>'}
+
+  </div>`;
 
   // ── Variante AVEC photo ──
   if (hasPhoto) {
     const cardHtml = `
     <div class="card fade-up garage-vehicle-card" style="overflow:hidden;padding:0;cursor:pointer;animation-delay:${i*40}ms;user-select:none;background:var(--card)">
-      <!-- Photo + overlay -->
-      <div style="position:relative;height:190px;background:#111">
+      <div style="position:relative;height:200px;background:#111">
         <img src="${v.photo_url}" style="width:100%;height:100%;object-fit:cover;opacity:0.88">
-        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.75) 0%,rgba(0,0,0,0.1) 55%,transparent 100%)"></div>
-        <!-- Bouton 3 points -->
+        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.78) 0%,rgba(0,0,0,0.1) 55%,transparent 100%)"></div>
         <button onclick="event.stopPropagation();openVehicleMenu('${v.id}')" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:10px;background:rgba(0,0,0,0.32);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:2">
           <i data-lucide="more-horizontal" style="width:16px;height:16px;color:rgba(255,255,255,0.9)"></i>
         </button>
-        <!-- Texte bas photo -->
         <div style="position:absolute;bottom:0;left:0;right:0;padding:14px 18px;z-index:1">
-          <p style="font-size:21px;font-weight:800;color:#fff;letter-spacing:-0.5px;text-shadow:0 1px 6px rgba(0,0,0,0.5)">${v.brand} ${v.model}</p>
-          <div style="margin-top:3px">${kmLine}</div>
+          <p style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px;text-shadow:0 1px 6px rgba(0,0,0,0.5)">${v.brand} ${v.model}</p>
+          <div style="margin-top:4px">${kmLine}</div>
         </div>
       </div>
-      <!-- Bloc chiffres collé sous la photo -->
       ${statsBlock}
     </div>`;
 
@@ -2156,7 +2214,7 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
     </div>`;
   }
 
-  // ── Variante SANS photo — gradient coloré ──
+  // ── Variante SANS photo ──
   const photoZone = `<div onclick="event.stopPropagation();openPhotoUpload('${v.id}')" style="width:52px;height:52px;border-radius:12px;background:rgba(255,255,255,0.15);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;flex-shrink:0;border:1.5px dashed rgba(255,255,255,0.35)"><i data-lucide="camera" style="width:18px;height:18px;color:rgba(255,255,255,0.75)"></i><span style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px">Photo</span></div>`;
 
   const cardHtml = `
@@ -2184,6 +2242,7 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
     </div>
   </div>`;
 }
+
 
 function makeCompactRow(v, mTotal, color, badgeColor, badgeLabel, isLast) {
   return `<div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:${isLast ? 'none' : '1px solid var(--sep)'};cursor:pointer;transition:opacity 150ms ease-out"

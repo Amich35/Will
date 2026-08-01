@@ -288,12 +288,18 @@ body.sheet-open { overflow:hidden; touch-action:none; }
 </head>
 <body>
 <div id="ptr-global" style="position:fixed;top:0;left:0;right:0;z-index:9999;display:flex;align-items:center;justify-content:center;height:56px;pointer-events:none;transform:translateY(-56px);transition:none">
-  <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center">
-    <svg id="ptr-svg" viewBox="0 0 36 36" width="36" height="36" style="transform:rotate(0deg)">
-      <circle cx="18" cy="18" r="14" fill="none" stroke="#E5E5EA" stroke-width="3"/>
-      <circle id="ptr-arc" cx="18" cy="18" r="14" fill="none" stroke="#007AFF" stroke-width="3" stroke-linecap="round" stroke-dasharray="0 87.96" transform="rotate(-90 18 18)"/>
-    </svg>
-  </div>
+  <svg id="ptr-svg" viewBox="0 0 40 40" width="30" height="30" style="opacity:0">
+    <g id="ptr-spokes" transform="translate(20,20)">
+      <line x1="0" y1="-9" x2="0" y2="-14" stroke="#007AFF" stroke-width="2.5" stroke-linecap="round" transform="rotate(0)"   opacity="1.0"/>
+      <line x1="0" y1="-9" x2="0" y2="-14" stroke="#007AFF" stroke-width="2.5" stroke-linecap="round" transform="rotate(45)"  opacity="0.5"/>
+      <line x1="0" y1="-9" x2="0" y2="-14" stroke="#007AFF" stroke-width="2.5" stroke-linecap="round" transform="rotate(90)"  opacity="0.25"/>
+      <line x1="0" y1="-9" x2="0" y2="-14" stroke="#007AFF" stroke-width="2.5" stroke-linecap="round" transform="rotate(135)" opacity="0.12"/>
+      <line x1="0" y1="-9" x2="0" y2="-14" stroke="#007AFF" stroke-width="2.5" stroke-linecap="round" transform="rotate(180)" opacity="0.08"/>
+      <line x1="0" y1="-9" x2="0" y2="-14" stroke="#007AFF" stroke-width="2.5" stroke-linecap="round" transform="rotate(225)" opacity="0.08"/>
+      <line x1="0" y1="-9" x2="0" y2="-14" stroke="#007AFF" stroke-width="2.5" stroke-linecap="round" transform="rotate(270)" opacity="0.08"/>
+      <line x1="0" y1="-9" x2="0" y2="-14" stroke="#007AFF" stroke-width="2.5" stroke-linecap="round" transform="rotate(315)" opacity="0.12"/>
+    </g>
+  </svg>
 </div>
 
 <!-- ═══════════════════════════════════
@@ -3222,10 +3228,9 @@ function renderAccount() {
 // ══════════════════════════════════════
 function initAllPullToRefresh() {
   const THRESHOLD = 80;
-  const CIRC = 2 * Math.PI * 14; // r=14
   const indicator = document.getElementById('ptr-global');
-  const arc       = document.getElementById('ptr-arc');
   const svg       = document.getElementById('ptr-svg');
+  const spokes    = document.getElementById('ptr-spokes');
   if (!indicator) return;
 
   const tabMap = {
@@ -3235,7 +3240,7 @@ function initAllPullToRefresh() {
     savings:  { scrollId: 'savings-content', fn: async () => { await loadUserData(); renderSavings(); } },
   };
 
-  let startY = 0, pulling = false, refreshing = false, spinAngle = 0, spinTimer = null;
+  let startY = 0, pulling = false, refreshing = false, spinTimer = null, angle = 0;
 
   function getScrollDiv() {
     const t = tabMap[activeTab || ''];
@@ -3246,30 +3251,31 @@ function initAllPullToRefresh() {
     return t ? t.fn : null;
   }
 
-  function setProgress(dy) {
+  function showPull(dy) {
     const pct = Math.min(dy / THRESHOLD, 1);
-    const y   = Math.min(dy * 0.55, 52);
-    indicator.style.transform = `translateY(${y - 56}px)`;
-    const dash = pct * CIRC;
-    arc.setAttribute('stroke-dasharray', `${dash.toFixed(1)} ${(CIRC - dash).toFixed(1)}`);
-    svg.style.transform = `rotate(${pct * 270}deg)`;
+    const y   = Math.min(dy * 0.55, 52) - 56;
+    indicator.style.transform = `translateY(${y}px)`;
+    svg.style.opacity = String(pct);
+    if (spokes) spokes.setAttribute('transform', `translate(20,20) rotate(${pct * 270})`);
   }
 
   function startSpin() {
-    let a = 0;
+    angle = 0;
+    svg.style.opacity = '1';
+    indicator.style.transform = 'translateY(4px)';
     spinTimer = setInterval(() => {
-      a = (a + 12) % 360;
-      svg.style.transform = `rotate(${a}deg)`;
-    }, 30);
+      angle = (angle + 45) % 360;
+      if (spokes) spokes.setAttribute('transform', `translate(20,20) rotate(${angle})`);
+    }, 80);
   }
 
   function reset() {
     clearInterval(spinTimer);
     indicator.style.transition = 'transform 0.25s ease';
     indicator.style.transform  = 'translateY(-56px)';
-    arc.setAttribute('stroke-dasharray', `0 ${CIRC.toFixed(1)}`);
-    svg.style.transform = 'rotate(0deg)';
-    setTimeout(() => { indicator.style.transition = 'none'; }, 260);
+    svg.style.opacity = '0';
+    if (spokes) spokes.setAttribute('transform', 'translate(20,20) rotate(0)');
+    setTimeout(() => { indicator.style.transition = 'none'; }, 280);
   }
 
   document.addEventListener('touchstart', e => {
@@ -3286,8 +3292,8 @@ function initAllPullToRefresh() {
     const div = getScrollDiv();
     if (div && div.scrollTop > 2) { pulling = false; reset(); return; }
     const dy = e.touches[0].clientY - startY;
-    if (dy <= 0) { reset(); return; }
-    setProgress(dy);
+    if (dy <= 0) return;
+    showPull(dy);
   }, { passive: true });
 
   document.addEventListener('touchend', async e => {
@@ -3297,8 +3303,6 @@ function initAllPullToRefresh() {
     const fn = getFn();
     if (dy >= THRESHOLD && fn) {
       refreshing = true;
-      indicator.style.transform = 'translateY(4px)';
-      arc.setAttribute('stroke-dasharray', `${CIRC.toFixed(1)} 0`);
       startSpin();
       await fn();
       await new Promise(r => setTimeout(r, 400));

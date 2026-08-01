@@ -987,7 +987,7 @@ body.sheet-open { overflow:hidden; touch-action:none; }
 <div class="bottom-sheet" id="valuation-sheet">
   <div class="sheet-handle"></div>
   <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;text-align:center">Valeur du véhicule</h3>
-  <div style="text-align:center;margin-bottom:24px">
+  <div style="text-align:center;margin-bottom:20px">
     <div style="display:inline-flex;align-items:baseline;gap:4px">
       <input id="val-amount" type="number" inputmode="decimal" placeholder="0"
         style="font-size:40px;font-weight:800;text-align:right;border:none;outline:none;width:140px;color:var(--text);background:transparent;letter-spacing:-2px">
@@ -995,12 +995,21 @@ body.sheet-open { overflow:hidden; touch-action:none; }
     </div>
     <p style="font-size:12px;color:var(--text3);margin-top:4px;letter-spacing:0.3px">VALEUR ESTIMÉE</p>
   </div>
+  <div class="input-group" style="margin-bottom:14px">
+    <label>Date de l'estimation</label>
+    <input id="val-date" type="date" class="input-field">
+  </div>
   <div class="input-group" style="margin-bottom:20px">
     <label>Note (optionnelle)</label>
     <input id="val-note" class="input-field" placeholder="ex. Cote Argus, estimation personnelle…">
   </div>
-  <button class="btn btn-primary" onclick="saveValuation()">Enregistrer</button>
+  <button class="btn btn-primary" id="val-save-btn" onclick="saveValuation()">Enregistrer</button>
   <button class="btn btn-secondary" onclick="hideSheet('valuation-sheet')" style="margin-top:10px">Annuler</button>
+
+  <div id="val-history-section" style="margin-top:28px">
+    <p style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Historique des estimations</p>
+    <div id="val-history-list"></div>
+  </div>
 </div>
 
 <!-- Simulateur — slide-in -->
@@ -4417,11 +4426,72 @@ async function markMaintenanceDone(id) {
 // ══════════════════════════════════════
 // COTE VÉHICULE — Fonctions
 // ══════════════════════════════════════
+let _editingValuationId = null;
+
 function openValuationSheet() {
+  _editingValuationId = null;
   document.getElementById('val-amount').value = '';
   document.getElementById('val-note').value   = '';
+  document.getElementById('val-date').value   = new Date().toISOString().split('T')[0];
+  document.getElementById('val-save-btn').textContent = 'Enregistrer';
+  renderValuationHistory();
   showSheet('valuation-sheet');
   setTimeout(() => { const a = document.getElementById('val-amount'); if(a) a.focus(); }, 300);
+}
+
+function renderValuationHistory() {
+  const list = valuations
+    .filter(v => v.vehicle_id === selectedVehicleId)
+    .sort((a,b) => new Date(b.valuation_date) - new Date(a.valuation_date));
+  const container = document.getElementById('val-history-list');
+  const section    = document.getElementById('val-history-section');
+  if (!container) return;
+  if (list.length === 0) {
+    section.style.display = 'none';
+    container.innerHTML = '';
+    return;
+  }
+  section.style.display = 'block';
+  container.innerHTML = list.map(v => {
+    const d = new Date(v.valuation_date).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' });
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--sep)">
+      <div style="min-width:0">
+        <p style="font-size:15px;font-weight:700;color:var(--text)">${fmtAmt(v.value)}\u00a0€</p>
+        <p style="font-size:12px;color:var(--text3);margin-top:2px">${d}${v.note ? ' \u00b7 ' + v.note : ''}</p>
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <button onclick="editValuation('${v.id}')" style="width:32px;height:32px;border-radius:8px;background:var(--sep);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer">
+          <i data-lucide="pencil" style="width:14px;height:14px;color:var(--text2)"></i>
+        </button>
+        <button onclick="deleteValuation('${v.id}')" style="width:32px;height:32px;border-radius:8px;background:rgba(255,59,48,0.08);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer">
+          <i data-lucide="trash-2" style="width:14px;height:14px;color:var(--red)"></i>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+function editValuation(id) {
+  const v = valuations.find(x => x.id === id);
+  if (!v) return;
+  _editingValuationId = id;
+  document.getElementById('val-amount').value = v.value;
+  document.getElementById('val-date').value   = v.valuation_date;
+  document.getElementById('val-note').value   = v.note || '';
+  document.getElementById('val-save-btn').textContent = 'Mettre à jour';
+  document.getElementById('val-amount').focus();
+}
+
+async function deleteValuation(id) {
+  if (!confirm('Supprimer cette estimation ?')) return;
+  const { error } = await sb.from('vehicle_valuations').delete().eq('id', id);
+  if (error) { alert('Erreur : ' + error.message); return; }
+  const { data: val } = await sb.from('vehicle_valuations').select('*').eq('user_id', currentUser.id).order('valuation_date', { ascending: false });
+  valuations = val || [];
+  renderValuationHistory();
+  heroAnimatedVehicles.delete(selectedVehicleId);
+  renderToday();
 }
 
 async function saveValuation() {
@@ -4430,10 +4500,21 @@ async function saveValuation() {
     document.getElementById('val-amount').style.borderBottom = '2px solid var(--red)';
     return;
   }
-  const note  = document.getElementById('val-note').value.trim() || null;
-  const today = new Date().toISOString().split('T')[0];
-  const { error } = await sb.from('vehicle_valuations').insert({ vehicle_id: selectedVehicleId, user_id: currentUser.id, value, valuation_date: today, note });
+  const date = document.getElementById('val-date').value || new Date().toISOString().split('T')[0];
+  const note = document.getElementById('val-note').value.trim() || null;
+
+  let error;
+  if (_editingValuationId) {
+    ({ error } = await sb.from('vehicle_valuations')
+      .update({ value, valuation_date: date, note })
+      .eq('id', _editingValuationId));
+  } else {
+    ({ error } = await sb.from('vehicle_valuations')
+      .insert({ vehicle_id: selectedVehicleId, user_id: currentUser.id, value, valuation_date: date, note }));
+  }
   if (error) { alert('Erreur : ' + error.message); return; }
+
+  _editingValuationId = null;
   hideSheet('valuation-sheet');
   const { data: val } = await sb.from('vehicle_valuations').select('*').eq('user_id', currentUser.id).order('valuation_date', { ascending: false });
   valuations = val || [];

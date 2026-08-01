@@ -2361,7 +2361,7 @@ function renderGarage() {
     synthEl.innerHTML = vehicles.length > 0
       ? '<i data-lucide="' + aIcon + '" style="width:13px;height:13px;color:' + aColor + ';flex-shrink:0"></i>'
         + '<span style="font-size:13px;color:var(--text2)">'
-        + vLabel + ' · ' + mLabel + evolHtml + (aLabel ? ' · <span style="color:' + aColor + ';font-weight:600">' + aLabel + '</span>' : '') + '</span>'
+        + vLabel + ' · ' + mLabel + (aLabel ? ' · <span style="color:' + aColor + ';font-weight:600">' + aLabel + '</span>' : '') + '</span>'
       : '';
   }
 

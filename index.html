@@ -1569,18 +1569,18 @@ function renderToday() {
   });
 
   let legend = catEntries.map(([cat, amt]) =>
-    `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--sep);cursor:pointer;transition:opacity 0.15s"
+    `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--sep);cursor:pointer;transition:opacity 0.15s;gap:6px"
       onclick="currentExpenseTab='depenses';selectedExpenseCat='${cat}';selectedPeriod='12m';currentExpenseTab='depenses';switchTab('expenses')"
       onmousedown="this.style.opacity='0.6'" onmouseup="this.style.opacity='1'" ontouchstart="this.style.opacity='0.6'" ontouchend="this.style.opacity='1'">
-      <div style="display:flex;align-items:center;gap:8px">
-        <div style="width:28px;height:28px;border-radius:8px;background:${CAT_COLORS[cat]||'#ccc'}18;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:8px;min-width:0">
+        <div style="width:30px;height:30px;border-radius:8px;background:${CAT_COLORS[cat]||'#ccc'}18;display:flex;align-items:center;justify-content:center;flex-shrink:0">
           <i data-lucide="${CAT_ICONS[cat]||'file-text'}" style="width:14px;height:14px;color:${CAT_COLORS[cat]||'#999'}"></i>
         </div>
-        <span style="font-size:13px;color:var(--text2)">${CAT_LABELS[cat]||cat}</span>
+        <span style="font-size:12px;color:var(--text2);line-height:1.3">${CAT_LABELS[cat]||cat}</span>
       </div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap">${fmtK(amt)} €</span>
-        <i data-lucide="chevron-right" style="width:12px;height:12px;color:var(--text3)"></i>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:4px">
+        <span style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap">${fmtK(amt)}\u202f€</span>
+        <i data-lucide="chevron-right" style="width:12px;height:12px;color:var(--text3);flex-shrink:0"></i>
       </div>
     </div>`
   ).join('');
@@ -1590,15 +1590,15 @@ function renderToday() {
   const centerFontSize = centerAmt >= 10000 ? '18px' : centerAmt >= 1000 ? '20px' : '24px';
 
   html += `<div class="card fade-up" style="animation-delay:30ms">
-    <div style="display:flex;align-items:center;gap:20px">
-      <div class="donut-container" style="width:${donutSize}px;height:${donutSize}px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="donut-container" style="width:${donutSize}px;height:${donutSize}px;flex-shrink:0">
         <svg width="${donutSize}" height="${donutSize}" style="transform:rotate(-90deg);overflow:visible" id="donut-svg-today">${arcs}</svg>
         <div class="donut-center">
-          <span style="font-size:${centerFontSize};font-weight:700;color:var(--text);white-space:nowrap">${fmtK(monthTotal)} €</span>
+          <span style="font-size:${centerFontSize};font-weight:700;color:var(--text);white-space:nowrap">${fmtK(monthTotal)}\u202f€</span>
           <span style="font-size:11px;color:var(--text2);margin-top:2px">ce mois-ci</span>
         </div>
       </div>
-      <div style="flex:1">${legend}</div>
+      <div style="flex:1;min-width:0">${legend}</div>
     </div>
   </div>`;
 

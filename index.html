@@ -2126,8 +2126,11 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
   const currM = monthsMap[currMonthKey] || 0;
   const prevM = monthsMap[prevMonthKey] || 0;
   const mEvol = prevM > 0 && currM > 0 ? Math.round((currM - prevM) / prevM * 100) : null;
+  const currMonthName = now.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '');
+  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthName = prevMonthDate.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '');
   const mEvolStr = mEvol !== null
-    ? `<span style="font-size:10px;font-weight:700;color:${mEvol > 0 ? 'var(--orange)' : 'var(--green)'}">${mEvol > 0 ? '▲' : '▼'} ${mEvol > 0 ? '+' : ''}${mEvol}% vs mois préc.</span>`
+    ? `<span style="font-size:10px;font-weight:700;color:${mEvol > 0 ? 'var(--orange)' : 'var(--green)'};white-space:nowrap">${mEvol > 0 ? '▲' : '▼'} ${mEvol > 0 ? '+' : ''}${mEvol}% vs ${prevMonthName}</span>`
     : '';
 
   // Évolution annuelle (mois actuel vs même mois il y a un an)
@@ -2165,9 +2168,9 @@ function makeVehicleCard(v, i, mTotal, color, badgeColor, badgeLabel, svgColored
     <div style="display:flex;gap:0;padding:16px 0;border-bottom:1px solid var(--sep)">
 
       <div style="flex:1;padding-right:12px">
-        <p style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Ce mois</p>
+        <p style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">${currMonthName}</p>
         <p style="font-size:20px;font-weight:700;color:var(--text);letter-spacing:-0.5px;line-height:1">${mTotal > 0 ? fmt(mTotal) : '—'}</p>
-        ${mEvolStr ? `<div style="margin-top:5px">${mEvolStr}</div>` : `<p style="font-size:10px;color:var(--text3);margin-top:5px">vs mois préc.</p>`}
+        ${mEvolStr ? `<div style="margin-top:5px">${mEvolStr}</div>` : `<p style="font-size:10px;color:var(--text3);margin-top:5px;white-space:nowrap">vs ${prevMonthName}</p>`}
       </div>
 
       <div style="width:1px;background:var(--sep);margin:0 4px"></div>

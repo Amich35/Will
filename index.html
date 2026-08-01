@@ -1711,18 +1711,17 @@ function renderToday() {
       const diff  = latestVal - acqCost;
       const pct   = Math.round(Math.abs(diff) / acqCost * 100);
       const col   = diff < 0 ? 'var(--orange)' : 'var(--green)';
-      const arrow = diff < 0 ? 'down' : 'up';
       const sign  = diff < 0 ? '\u2212' : '+';
-      deprHtml = '<span style="font-size:13px;font-weight:600;color:' + col + ';white-space:nowrap">'
-        + sign + pct + '% depuis l\'acquisition</span>';
+      deprHtml = '<span style="font-size:12px;font-weight:600;color:' + col + '">'
+        + sign + pct + '\u00a0% depuis l\'acquisition</span>';
     } else if (vVals.length >= 2) {
       const prev  = parseFloat(vVals[1].value);
       const diff  = latestVal - prev;
       const pct   = Math.round(Math.abs(diff) / prev * 100);
       const col   = diff < 0 ? 'var(--orange)' : 'var(--green)';
       const sign  = diff < 0 ? '\u2212' : '+';
-      deprHtml = '<span style="font-size:13px;font-weight:600;color:' + col + ';white-space:nowrap">'
-        + sign + pct + '% depuis la dernière estimation</span>';
+      deprHtml = '<span style="font-size:12px;font-weight:600;color:' + col + '">'
+        + sign + pct + '\u00a0% depuis la derni\u00e8re estimation</span>';
     }
 
     // --- Courbe SVG avec axes si 2+ cotes ---
@@ -1776,10 +1775,10 @@ function renderToday() {
       + '<span style="font-size:15px;font-weight:600;color:var(--text)">Valeur du véhicule</span>'
       + '<button onclick="openValuationSheet()" style="background:none;border:none;font-size:13px;font-weight:600;color:var(--accent);cursor:pointer;padding:0">Mettre à jour</button>'
       + '</div>'
-      + '<div style="display:flex;align-items:center;gap:10px;margin-top:4px;flex-wrap:nowrap">'
-      + '<span style="font-size:30px;font-weight:800;color:var(--text);letter-spacing:-0.5px;flex-shrink:0">' + latestVal.toLocaleString('fr-FR') + ' €</span>'
-      + deprHtml
+      + '<div style="margin-top:4px">'
+      + '<span style="font-size:30px;font-weight:800;color:var(--text);letter-spacing:-0.5px">' + Math.round(latestVal).toLocaleString('fr-FR').replace(/\s/g, '\u2009') + '\u00a0€</span>'
       + '</div>'
+      + (deprHtml ? '<div style="margin-top:4px">' + deprHtml + '</div>' : '')
       + '<div style="display:flex;align-items:center;gap:12px;margin-top:6px">'
       + '<p style="font-size:12px;color:var(--text3)">Estimée le ' + latestDate + (latest.note ? ' · ' + latest.note : '') + '</p>'
       + (acqLine ? '<span style="color:var(--sep)">·</span>' + acqLine : '')
